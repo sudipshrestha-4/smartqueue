@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Customer Dashboard - SmartQueue{% endblock %}
+{% block content %}
+
+<h2 class="mb-4">Customer Dashboard</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if active_entry %}
+  <div class="card mb-4" style="max-width: 400px;">
+    <div class="card-body text-center">
+      <h5 class="card-title">Your Token</h5>
+      <h1 class="display-4">{{ active_entry.token_number }}</h1>
+      <p class="text-muted">Status: {{ active_entry.status }}</p>
+      {% if qr_code_base64 %}
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code" class="img-fluid mt-2">
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <div class="card mb-4" style="max-width: 500px;">
+    <div class="card-body">
+      <h5 class="card-title">Join a Queue</h5>
+      <form method="POST" action="{{ url_for('customer.join_queue') }}">
+        <div class="mb-3">
+          <label class="form-label">Select Service</label>
+          <select name="service_id" class="form-select" required>
+            <option value="" disabled selected>-- Choose a service --</option>
+            {% for service in services %}
+              <option value="{{ service.id }}">{{ service.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Get Token</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+
+{% endblock %}
