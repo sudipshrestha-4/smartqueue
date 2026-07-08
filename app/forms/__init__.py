@@ -1,0 +1,1 @@
+"""Forms package for the SmartQueue application."""
