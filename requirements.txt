@@ -11,7 +11,7 @@ Flask-Migrate==4.0.7
 eventlet==0.36.1
 
 # Database driver
-PyMySQL==1.1.1
+psycopg2-binary==2.9.9
 
 # QR code generation
 qrcode==7.4.2

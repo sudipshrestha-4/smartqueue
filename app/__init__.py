@@ -3,6 +3,7 @@ from config import config
 from app.extensions import db, login_manager, socketio, migrate
 
 
+
 def create_app(config_name='development'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
@@ -10,17 +11,18 @@ def create_app(config_name='development'):
     # Initialize extensions with the app
     db.init_app(app)
     login_manager.init_app(app)
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        # Will query the User model once it exists (Phase 4)
-        return None
-
     migrate.init_app(app, db)
     socketio.init_app(app, async_mode=app.config['SOCKETIO_ASYNC_MODE'], cors_allowed_origins="*")
 
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
+
+    from app import models  # noqa: F401 - ensures models are registered
 
     # Register blueprints
     from app.routes.main import main_bp
