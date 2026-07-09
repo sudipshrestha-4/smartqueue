@@ -1,4 +1,5 @@
 from app.models.queue_entry import QueueEntry
+from app.models.counter import Counter
 from app.extensions import db
 
 # Lower number = higher priority
@@ -56,3 +57,45 @@ def get_customers_ahead(entry):
         if e.id == entry.id:
             return idx
     return 0
+
+
+def calculate_deterministic_estimate(entry):
+    """
+    Estimated Waiting Time = (Customers Ahead x Average Service Duration) / Active Counters.
+    Matches section 3.1.6 of the proposal.
+    """
+    customers_ahead = get_customers_ahead(entry)
+    avg_duration = getattr(entry.service, 'avg_service_duration', None)
+
+    active_counters = Counter.query.filter_by(status='active').count()
+    active_counters = max(active_counters, 1)
+
+    if avg_duration is None:
+        return 0.0
+
+    estimate = (customers_ahead * avg_duration) / active_counters
+    return round(estimate, 2)
+
+
+def broadcast_queue_updates(service_id=None):
+    """
+    Call this after any queue change (join, call-next, complete, no-show).
+    Sends fresh position numbers and updated wait estimates to each waiting
+    customer, and tells staff/admin dashboards to refresh.
+    """
+    from app.extensions import socketio
+
+    ordered = get_ordered_queue(service_id=service_id)
+    for idx, entry in enumerate(ordered):
+        position = idx + 1
+        entry.deterministic_estimate = calculate_deterministic_estimate(entry)
+
+        socketio.emit('position_update', {
+            'entry_id': entry.id,
+            'token': entry.token_number,
+            'position': position,
+            'estimate': entry.deterministic_estimate
+        }, room=f'customer_{entry.customer_id}')
+
+    db.session.commit()
+    socketio.emit('queue_updated', {}, room='staff_admin_room')

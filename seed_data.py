@@ -31,6 +31,12 @@ def seed_base_data(app=None):
             counter1 = Counter(counter_number=1, status='active')
             db.session.add(counter1)
 
+        counter2 = Counter.query.filter_by(counter_number=2).first()
+        if not counter2:
+            counter2 = Counter(counter_number=2, status='active')
+            db.session.add(counter2)
+            print('Added counter 2')
+
         staff_user = User.query.filter_by(role='staff').first()
         if not staff_user:
             staff_user = User(

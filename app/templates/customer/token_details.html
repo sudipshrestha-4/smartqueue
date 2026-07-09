@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Token Details - SmartQueue{% endblock %}
+{% block content %}
+<div id="live-alert"></div>
+<h2>Token Details</h2>
+<div class="card">
+  <div class="card-body">
+    <table class="table">
+      <tbody>
+        <tr>
+          <th>Token</th>
+          <td>{{ entry.token_number }}</td>
+        </tr>
+        <tr>
+          <th>Status</th>
+          <td id="live-status">{{ entry.status|capitalize }}</td>
+        </tr>
+        <tr>
+          <th>Position</th>
+          <td id="live-position">Calculating...</td>
+        </tr>
+        <tr>
+          <th>Estimated Wait</th>
+          <td id="live-estimate">
+            {% if entry.deterministic_estimate is not none %}
+              {{ entry.deterministic_estimate }} min
+            {% else %}
+              Calculating...
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  socket.on('position_update', (data) => {
+    if (data.entry_id === {{ entry.id }}) {
+      const posEl = document.getElementById('live-position');
+      if (posEl) posEl.textContent = `#${data.position}`;
+
+      const estEl = document.getElementById('live-estimate');
+      if (estEl) estEl.textContent = `${data.estimate} min`;
+    }
+  });
+
+  socket.on('customer_called', (data) => {
+    if (data.token === '{{ entry.token_number }}') {
+      const alertBox = document.getElementById('live-alert');
+      if (alertBox) {
+        alertBox.innerHTML = `
+          <div class="alert alert-success mt-3">
+            <strong>It's your turn!</strong> Please proceed to Counter ${data.counter}.
+          </div>
+        `;
+      }
+    }
+  });
+</script>
+{% endblock %}
