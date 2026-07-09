@@ -1,6 +1,332 @@
 {% extends "base.html" %}
-{% block title %}SmartQueue - Home{% endblock %}
+
+{% block title %}SmartQueue | Smart Bank Queue Management{% endblock %}
+
 {% block content %}
-<h1>SmartQueue</h1>
-<p>Smart Token-Based Queue Management System</p>
+
+<!-- HERO SECTION -->
+<section class="hero bg-white">
+    <div class="container">
+
+        <div class="row align-items-center">
+
+            <div class="col-lg-6">
+
+                <h1 class="display-4 fw-bold mb-4">
+                    Skip the Queue.<br>
+                    Bank Smarter.
+                </h1>
+
+                <p class="lead mb-4">
+                    SmartQueue lets customers join queues digitally, track their
+                    position in real time, receive notifications, and reduce
+                    waiting time using intelligent prediction.
+                </p>
+
+                {% if not current_user.is_authenticated %}
+
+                    <a href="{{ url_for('auth.register') }}"
+                       class="btn btn-primary btn-lg me-3">
+
+                        <i class="bi bi-person-plus-fill"></i>
+
+                        Get Started
+
+                    </a>
+
+                    <a href="{{ url_for('auth.login') }}"
+                       class="btn btn-outline-primary btn-lg">
+
+                        Login
+
+                    </a>
+
+                {% else %}
+
+                    <a href="#features"
+                       class="btn btn-primary btn-lg">
+
+                        Explore Features
+
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+            <div class="col-lg-6 text-center">
+
+                <img
+                    src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?w=900"
+                    class="img-fluid rounded-4 shadow-lg"
+                    alt="Bank Queue">
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- FEATURES -->
+
+<section id="features" class="py-5">
+
+<div class="container">
+
+<h2 class="text-center fw-bold mb-5">
+
+Why SmartQueue?
+
+</h2>
+
+<div class="row g-4">
+
+<div class="col-md-4">
+
+<div class="card feature-card h-100 p-4 text-center">
+
+<i class="bi bi-clock-history display-4 text-primary mb-3"></i>
+
+<h4>Real-Time Tracking</h4>
+
+<p>
+
+Track your queue position instantly without refreshing the page.
+
+</p>
+
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="card feature-card h-100 p-4 text-center">
+
+<i class="bi bi-cpu display-4 text-success mb-3"></i>
+
+<h4>AI Wait Prediction</h4>
+
+<p>
+
+Know your estimated waiting time before reaching the counter.
+
+</p>
+
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="card feature-card h-100 p-4 text-center">
+
+<i class="bi bi-bell-fill display-4 text-danger mb-3"></i>
+
+<h4>Instant Notifications</h4>
+
+<p>
+
+Receive live notifications when your turn arrives.
+
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- HOW IT WORKS -->
+
+<section class="bg-light py-5">
+
+<div class="container">
+
+<h2 class="text-center fw-bold mb-5">
+
+How SmartQueue Works
+
+</h2>
+
+<div class="row text-center">
+
+<div class="col-md-3">
+
+<div class="p-3">
+
+<div class="display-5 text-primary mb-3">
+
+1️⃣
+
+</div>
+
+<h5>Register</h5>
+
+<p>Create your account securely.</p>
+
+</div>
+
+</div>
+
+<div class="col-md-3">
+
+<div class="p-3">
+
+<div class="display-5 text-success mb-3">
+
+2️⃣
+
+</div>
+
+<h5>Choose Service</h5>
+
+<p>Select the banking service you need.</p>
+
+</div>
+
+</div>
+
+<div class="col-md-3">
+
+<div class="p-3">
+
+<div class="display-5 text-warning mb-3">
+
+3️⃣
+
+</div>
+
+<h5>Track Queue</h5>
+
+<p>Watch your position update live.</p>
+
+</div>
+
+</div>
+
+<div class="col-md-3">
+
+<div class="p-3">
+
+<div class="display-5 text-danger mb-3">
+
+4️⃣
+
+</div>
+
+<h5>Get Served</h5>
+
+<p>Receive notification when your token is called.</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- STATS -->
+
+<section class="py-5">
+
+<div class="container">
+
+<div class="row text-center">
+
+<div class="col-md-3">
+
+<h2 class="fw-bold text-primary">
+
+24/7
+
+</h2>
+
+<p>Online Queue Access</p>
+
+</div>
+
+<div class="col-md-3">
+
+<h2 class="fw-bold text-success">
+
+Real-Time
+
+</h2>
+
+<p>Queue Updates</p>
+
+</div>
+
+<div class="col-md-3">
+
+<h2 class="fw-bold text-danger">
+
+AI
+
+</h2>
+
+<p>Wait Prediction</p>
+
+</div>
+
+<div class="col-md-3">
+
+<h2 class="fw-bold text-warning">
+
+100%
+
+</h2>
+
+<p>Digital Experience</p>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- CTA -->
+
+<section class="bg-primary text-white py-5">
+
+<div class="container text-center">
+
+<h2 class="fw-bold mb-3">
+
+Ready to Skip the Queue?
+
+</h2>
+
+<p class="mb-4">
+
+Join SmartQueue today and experience modern banking.
+
+</p>
+
+{% if not current_user.is_authenticated %}
+
+<a href="{{ url_for('auth.register') }}"
+class="btn btn-light btn-lg">
+
+Create Free Account
+
+</a>
+
+{% endif %}
+
+</div>
+
+</section>
+
 {% endblock %}
