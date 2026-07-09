@@ -1,5 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Page Title{% endblock %}
+{% block title %}Customer Dashboard - SmartQueue{% endblock %}
 {% block content %}
-<h1>Page Title Here</h1>
+<h2>Customer Dashboard</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if active_entry %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5>Your Current Token</h5>
+      <p><strong>{{ active_entry.token_number }}</strong></p>
+      <p>Status: {{ active_entry.status|capitalize }}</p>
+      {% if qr_code_base64 %}
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR code" />
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <form method="POST" action="{{ url_for('customer.join_queue') }}">
+    <div class="mb-3">
+      <label for="service_id" class="form-label">Select a Service</label>
+      <select name="service_id" id="service_id" class="form-select" required>
+        {% for service in services %}
+          <option value="{{ service.id }}">{{ service.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary">Join Queue</button>
+  </form>
+{% endif %}
 {% endblock %}
