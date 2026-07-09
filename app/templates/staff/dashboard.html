@@ -1,5 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Page Title{% endblock %}
+{% block title %}Staff Dashboard - SmartQueue{% endblock %}
 {% block content %}
-<h1>Page Title Here</h1>
+<h2>Staff Dashboard</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<p>Counter: <strong>{{ counter.counter_number if counter else 'Not Assigned' }}</strong></p>
+
+{% if called_entry %}
+<div class="card mb-3 border-primary">
+  <div class="card-body">
+    <h5>Currently Serving: {{ called_entry.token_number }}</h5>
+    <form method="POST" action="{{ url_for('staff.complete_service', entry_id=called_entry.id) }}" class="d-inline">
+      <button class="btn btn-success btn-sm">Complete Service</button>
+    </form>
+    <form method="POST" action="{{ url_for('staff.mark_no_show', entry_id=called_entry.id) }}" class="d-inline">
+      <button class="btn btn-warning btn-sm">Mark No-Show</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<form method="POST" action="{{ url_for('staff.call_next') }}">
+  <button class="btn btn-primary mb-3">Call Next Customer</button>
+</form>
+{% endif %}
+
+<h4>Waiting Queue ({{ queue|length }})</h4>
+<table class="table">
+  <thead><tr><th>Token</th><th>Priority</th><th>Service</th><th>Arrived</th></tr></thead>
+  <tbody>
+    {% for entry in queue %}
+    <tr>
+      <td>{{ entry.token_number }}</td>
+      <td>{{ entry.priority_type|capitalize }}</td>
+      <td>{{ entry.service.name }}</td>
+      <td>{{ entry.arrival_time.strftime('%H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
