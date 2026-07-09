@@ -1,6 +1,6 @@
-from app.models.queue_entry import QueueEntry
+from app.extensions import db, socketio
 from app.models.counter import Counter
-from app.extensions import db
+from app.models.queue_entry import QueueEntry
 
 # Lower number = higher priority
 PRIORITY_RANK = {
@@ -21,24 +21,31 @@ def get_ordered_queue(service_id=None, counter_id=None):
 
     if service_id:
         query = query.filter_by(service_id=service_id)
+
     if counter_id:
         query = query.filter_by(counter_id=counter_id)
 
     entries = query.all()
+    entries.sort(
+        key=lambda e: (
+            PRIORITY_RANK.get(e.priority_type, 2),
+            e.arrival_time
+        )
+    )
 
-    entries.sort(key=lambda e: (PRIORITY_RANK.get(e.priority_type, 2), e.arrival_time))
     return entries
 
 
 def get_next_customer(counter_id):
-    """Returns the single next customer that should be called at a given counter."""
-    from app.models.counter import Counter
+    """
+    Returns the single next customer that should be called at a given counter.
+    """
     counter = Counter.query.get(counter_id)
     if not counter:
         return None
 
-    # A counter only serves waiting customers not yet assigned to a specific counter,
-    # OR ones already assigned to it (in case of manual assignment)
+    # A counter only serves waiting customers not yet assigned to a specific
+    # counter, OR ones already assigned to it (manual assignment)
     candidates = QueueEntry.query.filter(
         QueueEntry.status == 'waiting'
     ).all()
@@ -46,16 +53,27 @@ def get_next_customer(counter_id):
     if not candidates:
         return None
 
-    candidates.sort(key=lambda e: (PRIORITY_RANK.get(e.priority_type, 2), e.arrival_time))
+    candidates.sort(
+        key=lambda e: (
+            PRIORITY_RANK.get(e.priority_type, 2),
+            e.arrival_time
+        )
+    )
+
     return candidates[0]
 
 
 def get_customers_ahead(entry):
-    """Counts how many people are ahead of this entry in priority order — used for deterministic wait estimate in Phase 9."""
+    """
+    Counts how many people are ahead of this entry in priority order.
+    Used for deterministic wait estimate.
+    """
     ordered = get_ordered_queue(service_id=entry.service_id)
+
     for idx, e in enumerate(ordered):
         if e.id == entry.id:
             return idx
+
     return 0
 
 
@@ -83,19 +101,22 @@ def broadcast_queue_updates(service_id=None):
     Sends fresh position numbers and updated wait estimates to each waiting
     customer, and tells staff/admin dashboards to refresh.
     """
-    from app.extensions import socketio
-
     ordered = get_ordered_queue(service_id=service_id)
+
     for idx, entry in enumerate(ordered):
         position = idx + 1
         entry.deterministic_estimate = calculate_deterministic_estimate(entry)
 
-        socketio.emit('position_update', {
-            'entry_id': entry.id,
-            'token': entry.token_number,
-            'position': position,
-            'estimate': entry.deterministic_estimate
-        }, room=f'customer_{entry.customer_id}')
+        socketio.emit(
+            'position_update',
+            {
+                'entry_id': entry.id,
+                'token': entry.token_number,
+                'position': position,
+                'estimate': entry.deterministic_estimate
+            },
+            room=f'customer_{entry.customer_id}'
+        )
 
     db.session.commit()
     socketio.emit('queue_updated', {}, room='staff_admin_room')

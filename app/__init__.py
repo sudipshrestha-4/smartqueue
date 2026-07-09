@@ -3,7 +3,6 @@ from config import config
 from app.extensions import db, login_manager, socketio, migrate
 
 
-
 def create_app(config_name='development'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
@@ -12,7 +11,14 @@ def create_app(config_name='development'):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
-    socketio.init_app(app, async_mode=app.config['SOCKETIO_ASYNC_MODE'], cors_allowed_origins="*")
+    socketio.init_app(
+        app,
+        async_mode=app.config['SOCKETIO_ASYNC_MODE'],
+        cors_allowed_origins="*"
+    )
+
+    # Register Socket.IO event handlers
+    from app import sockets  # noqa: F401
 
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
