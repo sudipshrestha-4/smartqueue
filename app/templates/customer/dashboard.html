@@ -37,6 +37,52 @@
   </form>
 {% endif %}
 
+<<<<<<< HEAD
+{% if active_entries %}
+  <div class="card">
+    <div class="card-body">
+      <h5>Your Active Tokens</h5>
+      <table class="table" id="queue-table">
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Service</th>
+            <th>Status</th>
+            <th>Position</th>
+            <th>Est. Wait</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in active_entries %}
+          <tr id="entry-row-{{ entry.id }}">
+            <td>{{ entry.token_number }}</td>
+            <td>{{ entry.service.name }}</td>
+            <td id="status-{{ entry.id }}">{{ entry.status|capitalize }}</td>
+            <td id="position-{{ entry.id }}">—</td>
+            <td id="estimate-{{ entry.id }}">
+              {% if entry.deterministic_estimate is not none %}{{ entry.deterministic_estimate }} min{% else %}—{% endif %}
+            </td>
+            <td><a href="{{ url_for('customer.token_details', entry_id=entry.id) }}">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  socket.on('position_update', (data) => {
+    const posCell = document.getElementById(`position-${data.entry_id}`);
+    if (posCell) posCell.textContent = `#${data.position}`;
+
+    const estCell = document.getElementById(`estimate-${data.entry_id}`);
+    if (estCell) estCell.textContent = `${data.estimate} min`;
+=======
 <script>
   const socket = io();
   const activeEntryId = {{ active_entry.id if active_entry else 'null' }};
@@ -47,11 +93,16 @@
     if (posCell && data.entry_id === activeEntryId) {
       posCell.textContent = `#${data.position}`;
     }
+>>>>>>> main
   });
 
   socket.on('customer_called', (data) => {
     const alertBox = document.getElementById('live-alert');
+<<<<<<< HEAD
+    if (alertBox) {
+=======
     if (alertBox && data.token === currentToken) {
+>>>>>>> main
       alertBox.innerHTML = `
         <div class="alert alert-success">
           <strong>It's your turn!</strong> Token ${data.token} — please proceed to Counter ${data.counter}.

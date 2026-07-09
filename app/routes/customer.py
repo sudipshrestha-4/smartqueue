@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.extensions import db
 from app.utils.decorators import role_required
+from app.utils.queue_logic import broadcast_queue_updates, calculate_deterministic_estimate
 from app.utils.token_generator import generate_token_number
 from app.utils.qr_generator import generate_qr_code
 from app.models.service import Service
@@ -26,6 +27,18 @@ def dashboard():
         QueueEntry.status.in_(['waiting', 'called', 'in_service'])
     ).first()
 
+    active_entries = QueueEntry.query.filter_by(
+        customer_id=current_user.id
+    ).filter(
+        QueueEntry.status.in_(['waiting', 'called', 'in_service'])
+    ).order_by(QueueEntry.arrival_time.asc()).all()
+
+    for entry in active_entries:
+        if entry.deterministic_estimate is None:
+            entry.deterministic_estimate = calculate_deterministic_estimate(entry)
+
+    db.session.commit()
+
     qr_code_base64 = None
     if active_entry:
         qr_code_base64 = generate_qr_code(active_entry.token_number)
@@ -34,6 +47,7 @@ def dashboard():
         'customer/dashboard.html',
         services=services,
         active_entry=active_entry,
+        active_entries=active_entries,
         qr_code_base64=qr_code_base64
     )
 
@@ -90,5 +104,23 @@ def join_queue():
     db.session.commit()
     broadcast_queue_updates(service_id=new_entry.service_id)
 
+    new_entry.deterministic_estimate = calculate_deterministic_estimate(new_entry)
+    db.session.commit()
+
+    broadcast_queue_updates(service_id=new_entry.service_id)
+
     flash(f'You joined the queue! Your token is {token_number}.', 'success')
     return redirect(url_for('customer.dashboard'))
+
+
+@customer_bp.route('/token-details/<int:entry_id>')
+@login_required
+@role_required('customer')
+def token_details(entry_id):
+    entry = QueueEntry.query.filter_by(id=entry_id, customer_id=current_user.id).first_or_404()
+
+    if entry.deterministic_estimate is None:
+        entry.deterministic_estimate = calculate_deterministic_estimate(entry)
+        db.session.commit()
+
+    return render_template('customer/token_details.html', entry=entry)
