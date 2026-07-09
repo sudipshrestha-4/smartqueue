@@ -14,9 +14,12 @@
     <div class="card-body">
       <h5>Your Current Token</h5>
       <p><strong>{{ active_entry.token_number }}</strong></p>
-      <p>Status: {{ active_entry.status|capitalize }}</p>
+      <p>Status: <span id="status-{{ active_entry.id }}">{{ active_entry.status|capitalize }}</span></p>
+      <p>Queue Position: <span id="position-{{ active_entry.id }}">—</span></p>
+      <div id="live-alert" class="mt-3"></div>
+      <a href="{{ url_for('customer.token_details', entry_id=active_entry.id) }}" class="btn btn-outline-secondary btn-sm mt-2">View Details</a>
       {% if qr_code_base64 %}
-        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR code" />
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR code" class="mt-3" />
       {% endif %}
     </div>
   </div>
@@ -33,4 +36,28 @@
     <button class="btn btn-primary">Join Queue</button>
   </form>
 {% endif %}
+
+<script>
+  const socket = io();
+  const activeEntryId = {{ active_entry.id if active_entry else 'null' }};
+  const currentToken = {{ active_entry.token_number|tojson if active_entry else 'null' }};
+
+  socket.on('position_update', (data) => {
+    const posCell = document.getElementById(`position-${activeEntryId}`);
+    if (posCell && data.entry_id === activeEntryId) {
+      posCell.textContent = `#${data.position}`;
+    }
+  });
+
+  socket.on('customer_called', (data) => {
+    const alertBox = document.getElementById('live-alert');
+    if (alertBox && data.token === currentToken) {
+      alertBox.innerHTML = `
+        <div class="alert alert-success">
+          <strong>It's your turn!</strong> Token ${data.token} — please proceed to Counter ${data.counter}.
+        </div>
+      `;
+    }
+  });
+</script>
 {% endblock %}
