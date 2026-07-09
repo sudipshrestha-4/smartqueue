@@ -45,6 +45,7 @@ def call_next():
 
     next_entry.calculate_actual_wait()
     db.session.commit()
+    broadcast_queue_updates(service_id=next_entry.service_id)
 
     broadcast_queue_updates(service_id=next_entry.service_id)
 
@@ -66,6 +67,7 @@ def complete_service(entry_id):
     entry.status = 'completed'
     entry.service_completion_time = datetime.utcnow()
     db.session.commit()
+    broadcast_queue_updates(service_id=entry.service_id)
 
     broadcast_queue_updates(service_id=entry.service_id)
 
@@ -80,6 +82,7 @@ def mark_no_show(entry_id):
     entry = QueueEntry.query.get_or_404(entry_id)
     entry.status = 'no_show'
     db.session.commit()
+    broadcast_queue_updates(service_id=entry.service_id)
 
     broadcast_queue_updates(service_id=entry.service_id)
 

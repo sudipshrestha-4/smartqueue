@@ -43,4 +43,12 @@
     {% endfor %}
   </tbody>
 </table>
+
+<script>
+  const socket = io();
+
+  socket.on('queue_updated', () => {
+    location.reload();
+  });
+</script>
 {% endblock %}
