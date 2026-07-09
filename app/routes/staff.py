@@ -4,7 +4,7 @@ from datetime import datetime
 
 from app.extensions import db, socketio
 from app.utils.decorators import role_required
-from app.utils.queue_logic import get_ordered_queue, get_next_customer
+from app.utils.queue_logic import broadcast_queue_updates, get_ordered_queue, get_next_customer
 from app.models.queue_entry import QueueEntry
 from app.models.counter import Counter
 
@@ -45,6 +45,7 @@ def call_next():
 
     next_entry.calculate_actual_wait()
     db.session.commit()
+    broadcast_queue_updates(service_id=next_entry.service_id)
 
     # Notify customer in real time (built out fully in Phase 8)
     socketio.emit('customer_called', {
@@ -64,6 +65,7 @@ def complete_service(entry_id):
     entry.status = 'completed'
     entry.service_completion_time = datetime.utcnow()
     db.session.commit()
+    broadcast_queue_updates(service_id=entry.service_id)
 
     flash(f'Token {entry.token_number} marked as completed.', 'success')
     return redirect(url_for('staff.dashboard'))
@@ -76,6 +78,7 @@ def mark_no_show(entry_id):
     entry = QueueEntry.query.get_or_404(entry_id)
     entry.status = 'no_show'
     db.session.commit()
+    broadcast_queue_updates(service_id=entry.service_id)
 
     flash(f'Token {entry.token_number} marked as no-show.', 'warning')
     return redirect(url_for('staff.dashboard'))
