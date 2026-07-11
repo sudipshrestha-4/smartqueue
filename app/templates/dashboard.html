@@ -16,6 +16,9 @@
       <h5 class="card-title">Your Token</h5>
       <h1 class="display-4">{{ active_entry.token_number }}</h1>
       <p class="text-muted">Status: {{ active_entry.status }}</p>
+      {% if active_entry.priority_type != 'normal' %}
+        <span class="badge bg-danger">{{ active_entry.priority_type|capitalize }} priority</span>
+      {% endif %}
       {% if qr_code_base64 %}
         <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code" class="img-fluid mt-2">
       {% endif %}
@@ -34,6 +37,17 @@
               <option value="{{ service.id }}">{{ service.name }}</option>
             {% endfor %}
           </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Priority (if applicable)</label>
+          <select name="priority_type" class="form-select">
+            <option value="normal" selected>None - Normal queue</option>
+            <option value="elderly">Elderly</option>
+            <option value="disabled">Disabled</option>
+            <option value="pregnant">Pregnant</option>
+            <option value="emergency">Emergency</option>
+          </select>
+          <div class="form-text">Priority customers are served ahead of the normal queue.</div>
         </div>
         <button type="submit" class="btn btn-primary">Get Token</button>
       </form>

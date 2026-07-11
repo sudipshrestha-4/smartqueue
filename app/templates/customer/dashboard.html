@@ -1,5 +1,74 @@
 {% extends "base.html" %}
-{% block title %}Page Title{% endblock %}
+{% block title %}Customer Dashboard - SmartQueue{% endblock %}
 {% block content %}
-<h1>Page Title Here</h1>
+
+<h2 class="mb-4">Customer Dashboard</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if active_entries %}
+  <h5 class="mb-3">Your Active Tokens</h5>
+  <div class="row g-3 mb-4">
+    {% for entry in active_entries %}
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <p class="text-muted mb-1">{{ entry.service.name }}</p>
+            <h2 class="display-6">{{ entry.token_number }}</h2>
+            <p class="text-muted mb-1">Status: {{ entry.status }}</p>
+            {% if entry.priority_type != 'normal' %}
+              <span class="badge bg-danger mb-2">{{ entry.priority_type|capitalize }} priority</span>
+            {% endif %}
+            {% if entry.deterministic_estimate is not none %}
+              <p class="small text-muted">Est. wait: {{ entry.deterministic_estimate }} min</p>
+            {% endif %}
+            {% if qr_codes.get(entry.id) %}
+              <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR Code" class="img-fluid mt-2" style="max-width:150px;">
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if available_services %}
+  <div class="card mb-4" style="max-width: 500px;">
+    <div class="card-body">
+      <h5 class="card-title">Join a Queue</h5>
+      <form method="POST" action="{{ url_for('customer.join_queue') }}">
+        <div class="mb-3">
+          <label class="form-label">Select Service</label>
+          <select name="service_id" class="form-select" required>
+            <option value="" disabled selected>-- Choose a service --</option>
+            {% for service in available_services %}
+              <option value="{{ service.id }}">{{ service.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Priority (if applicable)</label>
+          <select name="priority_type" class="form-select">
+            <option value="normal" selected>None - Normal queue</option>
+            <option value="elderly">Elderly</option>
+            <option value="disabled">Disabled</option>
+            <option value="pregnant">Pregnant</option>
+            <option value="emergency">Emergency</option>
+          </select>
+          <div class="form-text">Priority customers are served ahead of the normal queue.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Get Token</button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted">You've joined the queue for every available service.</p>
+{% endif %}
+
+<a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+
 {% endblock %}
