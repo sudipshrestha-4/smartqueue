@@ -1,7 +1,7 @@
 # SmartQueue
 
 A Smart Token-Based Queue Management System with deterministic wait-time
-estimation and ML-based wait-time prediction (SVR & Random Forest).
+estimation 
 
 Built for the Minor Project (BE Computer Engineering, Pokhara University)
 by Sudip Shrestha, Saru Chauwal, and Pratik Karki — Nepal College of

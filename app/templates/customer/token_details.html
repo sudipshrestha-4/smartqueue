@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Your Token - SmartQueue{% endblock %}
+{% block content %}
+<div class="text-center">
+  <h2>Your Token</h2>
+  <div class="display-1 fw-bold my-4">{{ entry.token_number }}</div>
+
+  <table class="table table-bordered w-50 mx-auto text-start">
+    <tr>
+      <th>Service</th>
+      <td>{{ entry.service.name }}</td>
+    </tr>
+    <tr>
+      <th>Priority</th>
+      <td>{{ entry.priority_type|capitalize }}</td>
+    </tr>
+    <tr>
+      <th>Status</th>
+      <td>{{ entry.status|capitalize }}</td>
+    </tr>
+    <tr>
+      <th>Estimated Wait</th>
+      <td>
+        {% if entry.deterministic_estimate %}
+          {{ entry.deterministic_estimate }} min
+        {% else %}
+          Calculating...
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <a href="{{ url_for('customer.dashboard') }}" class="btn btn-outline-primary mt-3">Back to Dashboard</a>
+</div>
+{% endblock %}
