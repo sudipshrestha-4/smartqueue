@@ -10,25 +10,35 @@
   {% endfor %}
 {% endwith %}
 
+<!-- Live "it's your turn" banner appears here via JS -->
+<div id="live-alert"></div>
+
 {% if active_entries %}
   <h5 class="mb-3">Your Active Tokens</h5>
   <div class="row g-3 mb-4">
     {% for entry in active_entries %}
       <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card h-100" id="entry-card-{{ entry.id }}">
           <div class="card-body text-center">
             <p class="text-muted mb-1">{{ entry.service.name }}</p>
             <h2 class="display-6">{{ entry.token_number }}</h2>
-            <p class="text-muted mb-1">Status: {{ entry.status }}</p>
+            <p class="text-muted mb-1">Status: <span id="status-{{ entry.id }}">{{ entry.status|capitalize }}</span></p>
             {% if entry.priority_type != 'normal' %}
               <span class="badge bg-danger mb-2">{{ entry.priority_type|capitalize }} priority</span>
             {% endif %}
-            {% if entry.deterministic_estimate is not none %}
-              <p class="small text-muted">Est. wait: {{ entry.deterministic_estimate }} min</p>
-            {% endif %}
+            <p class="small text-muted mb-1">Position: <span id="position-{{ entry.id }}">—</span></p>
+            <p class="small text-muted">
+              Est. wait:
+              <span id="estimate-{{ entry.id }}">
+                {% if entry.deterministic_estimate is not none %}{{ entry.deterministic_estimate }} min{% else %}—{% endif %}
+              </span>
+            </p>
             {% if qr_codes.get(entry.id) %}
               <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR Code" class="img-fluid mt-2" style="max-width:150px;">
             {% endif %}
+            <div>
+              <a href="{{ url_for('customer.token_details', entry_id=entry.id) }}" class="btn btn-outline-secondary btn-sm mt-2">View Details</a>
+            </div>
           </div>
         </div>
       </div>
@@ -71,4 +81,63 @@
 
 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  // Keep a lookup of this customer's own active tokens, by token string,
+  // so we know which "customer_called" events are actually for us.
+  const myTokens = {
+    {% for entry in active_entries %}
+      "{{ entry.token_number }}": {{ entry.id }},
+    {% endfor %}
+  };
+
+  socket.on('position_update', (data) => {
+    const posCell = document.getElementById(`position-${data.entry_id}`);
+    if (posCell) posCell.textContent = `#${data.position}`;
+
+    const estCell = document.getElementById(`estimate-${data.entry_id}`);
+    if (estCell) estCell.textContent = `${data.estimate} min`;
+  });
+
+  socket.on('customer_called', (data) => {
+    const entryId = myTokens[data.token];
+    if (!entryId) return;  // not one of our tokens, ignore
+
+    const statusCell = document.getElementById(`status-${entryId}`);
+    if (statusCell) statusCell.textContent = 'Called';
+
+    const card = document.getElementById(`entry-card-${entryId}`);
+    if (card) card.classList.add('border-success', 'border-3');
+
+    const alertBox = document.getElementById('live-alert');
+    if (alertBox) {
+      alertBox.innerHTML = `
+        <div class="alert alert-success d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <strong>It's your turn!</strong>
+            Token <strong>${data.token}</strong> — please proceed to Counter ${data.counter}.
+          </div>
+        </div>
+      `;
+    }
+
+    // Simple audio beep so it's noticeable even if you're not looking at the screen
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      osc.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => osc.stop(), 300);
+    } catch (e) {
+      // Audio not supported/blocked - visual alert above still shows
+    }
+  });
+</script>
 {% endblock %}

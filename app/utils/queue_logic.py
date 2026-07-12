@@ -39,15 +39,21 @@ def get_ordered_queue(service_id=None, counter_id=None):
 def get_next_customer(counter_id):
     """
     Returns the single next customer that should be called at a given counter.
+    Only customers waiting for the service this counter is assigned to are
+    considered - a counter set up for "Cash Deposit" should never be offered
+    a "Loan Inquiry" customer.
     """
     counter = Counter.query.get(counter_id)
     if not counter:
         return None
 
-    # A counter only serves waiting customers not yet assigned to a specific
-    # counter, OR ones already assigned to it (manual assignment)
+    if not counter.service_id:
+        # Counter has no service assigned yet - nothing it can correctly serve.
+        return None
+
     candidates = QueueEntry.query.filter(
-        QueueEntry.status == 'waiting'
+        QueueEntry.status == 'waiting',
+        QueueEntry.service_id == counter.service_id
     ).all()
 
     if not candidates:
@@ -81,11 +87,17 @@ def calculate_deterministic_estimate(entry):
     """
     Estimated Waiting Time = (Customers Ahead x Average Service Duration) / Active Counters.
     Matches section 3.1.6 of the proposal.
+    "Active Counters" means counters that are active AND assigned to this
+    entry's specific service - a counter serving a different service doesn't
+    help this customer's wait time.
     """
     customers_ahead = get_customers_ahead(entry)
     avg_duration = getattr(entry.service, 'avg_service_duration', None)
 
-    active_counters = Counter.query.filter_by(status='active').count()
+    active_counters = Counter.query.filter_by(
+        status='active',
+        service_id=entry.service_id
+    ).count()
     active_counters = max(active_counters, 1)
 
     if avg_duration is None:

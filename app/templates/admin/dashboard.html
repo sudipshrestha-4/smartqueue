@@ -1,5 +1,187 @@
 {% extends "base.html" %}
-{% block title %}Page Title{% endblock %}
+{% block title %}Admin Dashboard - SmartQueue{% endblock %}
 {% block content %}
-<h1>Page Title Here</h1>
+
+<h2 class="mb-4">Admin Dashboard</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- STATS -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-primary">{{ stats.waiting_count }}</div>
+      <div class="small text-muted">Waiting</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-warning">{{ stats.in_service_count }}</div>
+      <div class="small text-muted">In Service</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-success">{{ stats.completed_today }}</div>
+      <div class="small text-muted">Completed Today</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-danger">{{ stats.no_show_today }}</div>
+      <div class="small text-muted">No-Shows Today</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold">{{ stats.active_counters_count }}/{{ stats.total_counters }}</div>
+      <div class="small text-muted">Active Counters</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold">{{ stats.total_staff }}</div>
+      <div class="small text-muted">Staff Members</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- COUNTERS -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="card-title mb-0">Counters</h5>
+          <form method="POST" action="{{ url_for('admin.add_counter') }}">
+            <button type="submit" class="btn btn-sm btn-primary">+ Add Counter</button>
+          </form>
+        </div>
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Status</th>
+              <th>Service</th>
+              <th>Staff Assigned</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for counter in counters %}
+            <tr>
+              <td>Counter {{ counter.counter_number }}</td>
+              <td>
+                <span class="badge {{ 'bg-success' if counter.status == 'active' else 'bg-secondary' }}">
+                  {{ counter.status }}
+                </span>
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.assign_service', counter_id=counter.id) }}" class="d-flex gap-1">
+                  <select name="service_id" class="form-select form-select-sm">
+                    <option value="">-- none --</option>
+                    {% for service in services %}
+                      <option value="{{ service.id }}" {% if counter.service_id == service.id %}selected{% endif %}>
+                        {{ service.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                </form>
+              </td>
+              <td>{{ counter.staff.name if counter.staff else '-' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.toggle_counter', counter_id=counter.id) }}">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    {{ 'Deactivate' if counter.status == 'active' else 'Activate' }}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-muted">No counters yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Staff</h5>
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Assign Counter</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for member in staff_members %}
+            <tr>
+              <td>{{ member.name }}</td>
+              <td>{{ member.email }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.assign_counter', staff_id=member.id) }}" class="d-flex gap-2">
+                  <select name="counter_id" class="form-select form-select-sm">
+                    <option value="">Unassigned</option>
+                    {% for counter in counters %}
+                      <option value="{{ counter.id }}" {% if member.assigned_counter_id == counter.id %}selected{% endif %}>
+                        Counter {{ counter.counter_number }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-muted">No staff accounts yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Services</h5>
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Avg. Duration (min)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for service in services %}
+            <tr>
+              <td>{{ service.name }}</td>
+              <td>{{ service.description }}</td>
+              <td>{{ service.avg_service_duration }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm mt-4">Logout</a>
+
 {% endblock %}
