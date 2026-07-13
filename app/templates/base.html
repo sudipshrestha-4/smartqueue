@@ -87,6 +87,9 @@
     {% block content %}{% endblock %}
 </main>
 
+<!-- Socket.IO client - loaded globally so any page can use real-time updates -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 {% block extra_js %}{% endblock %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

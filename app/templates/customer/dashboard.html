@@ -84,7 +84,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
   const socket = io();
 
@@ -104,9 +103,12 @@
     if (estCell) estCell.textContent = `${data.estimate} min`;
   });
 
-  socket.on('customer_called', (data) => {
+  `socket.on('customer_called', (data) => {
     const entryId = myTokens[data.token];
-    if (!entryId) return;  // not one of our tokens, ignore
+    if (!entryId) return;
+
+    const posEl = document.getElementById(`position-${entryId}`);
+    if (posEl) posEl.innerHTML = '<span class="now-serving">NOW SERVING</span>';
 
     const statusCell = document.getElementById(`status-${entryId}`);
     if (statusCell) statusCell.textContent = 'Called';
@@ -126,7 +128,6 @@
       `;
     }
 
-    // Simple audio beep so it's noticeable even if you're not looking at the screen
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -137,6 +138,15 @@
       setTimeout(() => osc.stop(), 300);
     } catch (e) {
       // Audio not supported/blocked - visual alert above still shows
+    }
+
+    // Voice announcement
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(
+        `Token ${data.token.split('').join(' ')}. Please proceed to counter ${data.counter}.`
+      );
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
     }
   });
 </script>

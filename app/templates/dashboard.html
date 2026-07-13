@@ -1,8 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Customer Dashboard - SmartQueue{% endblock %}
+{% block title %}Staff Dashboard - SmartQueue{% endblock %}
 {% block content %}
-
-<h2 class="mb-4">Customer Dashboard</h2>
+<h2>Staff Dashboard</h2>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for category, message in messages %}
@@ -10,51 +9,52 @@
   {% endfor %}
 {% endwith %}
 
-{% if active_entry %}
-  <div class="card mb-4" style="max-width: 400px;">
-    <div class="card-body text-center">
-      <h5 class="card-title">Your Token</h5>
-      <h1 class="display-4">{{ active_entry.token_number }}</h1>
-      <p class="text-muted">Status: {{ active_entry.status }}</p>
-      {% if active_entry.priority_type != 'normal' %}
-        <span class="badge bg-danger">{{ active_entry.priority_type|capitalize }} priority</span>
-      {% endif %}
-      {% if qr_code_base64 %}
-        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code" class="img-fluid mt-2">
-      {% endif %}
-    </div>
+<p>Counter: <strong>{{ counter.counter_number if counter else 'Not Assigned' }}</strong>
+{% if counter and counter.service %} — {{ counter.service.name }}{% endif %}</p>
+
+{% if called_entry %}
+<div class="card mb-3 border-primary">
+  <div class="card-body">
+    <h5>Currently Serving: {{ called_entry.token_number }}</h5>
+    <form method="POST" action="{{ url_for('staff.complete_service', entry_id=called_entry.id) }}" class="d-inline">
+      <button class="btn btn-success btn-sm">Complete Service</button>
+    </form>
+    <form method="POST" action="{{ url_for('staff.mark_no_show', entry_id=called_entry.id) }}" class="d-inline">
+      <button class="btn btn-warning btn-sm">Mark No-Show</button>
+    </form>
   </div>
+</div>
 {% else %}
-  <div class="card mb-4" style="max-width: 500px;">
-    <div class="card-body">
-      <h5 class="card-title">Join a Queue</h5>
-      <form method="POST" action="{{ url_for('customer.join_queue') }}">
-        <div class="mb-3">
-          <label class="form-label">Select Service</label>
-          <select name="service_id" class="form-select" required>
-            <option value="" disabled selected>-- Choose a service --</option>
-            {% for service in services %}
-              <option value="{{ service.id }}">{{ service.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Priority (if applicable)</label>
-          <select name="priority_type" class="form-select">
-            <option value="normal" selected>None - Normal queue</option>
-            <option value="elderly">Elderly</option>
-            <option value="disabled">Disabled</option>
-            <option value="pregnant">Pregnant</option>
-            <option value="emergency">Emergency</option>
-          </select>
-          <div class="form-text">Priority customers are served ahead of the normal queue.</div>
-        </div>
-        <button type="submit" class="btn btn-primary">Get Token</button>
-      </form>
-    </div>
-  </div>
+<form method="POST" action="{{ url_for('staff.call_next') }}">
+  <button class="btn btn-primary mb-3">Call Next Customer</button>
+</form>
 {% endif %}
 
-<a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+<h4>Waiting Queue ({{ queue|length }})</h4>
+<table class="table">
+  <thead><tr><th>Token</th><th>Priority</th><th>Service</th><th>Arrived</th></tr></thead>
+  <tbody>
+    {% for entry in queue %}
+    <tr>
+      <td>{{ entry.token_number }}</td>
+      <td>{{ entry.priority_type|capitalize }}</td>
+      <td>{{ entry.service.name }}</td>
+      <td>{{ entry.arrival_time.strftime('%H:%M') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="text-muted">No one waiting.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const socket = io();
+
+  socket.on('queue_updated', () => {
+    location.reload();
+  });
+</script>
 {% endblock %}
