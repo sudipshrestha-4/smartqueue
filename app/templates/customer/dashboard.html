@@ -13,6 +13,23 @@
 <!-- Live "it's your turn" banner appears here via JS -->
 <div id="live-alert"></div>
 
+<style>
+  .position-number {
+    font-size: 3rem;
+    font-weight: 700;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .position-number.bump {
+    transform: scale(1.15);
+    opacity: 0.6;
+  }
+  .now-serving {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #198754;
+  }
+</style>
+
 {% if active_entries %}
   <h5 class="mb-3">Your Active Tokens</h5>
   <div class="row g-3 mb-4">
@@ -21,21 +38,35 @@
         <div class="card h-100" id="entry-card-{{ entry.id }}">
           <div class="card-body text-center">
             <p class="text-muted mb-1">{{ entry.service.name }}</p>
-            <h2 class="display-6">{{ entry.token_number }}</h2>
-            <p class="text-muted mb-1">Status: <span id="status-{{ entry.id }}">{{ entry.status|capitalize }}</span></p>
+            <h5 class="mb-2">{{ entry.token_number }}</h5>
+
+            <div class="text-muted small">Current Position</div>
+            <div class="position-number" id="position-{{ entry.id }}">
+              {% if entry.status == 'called' or entry.status == 'in_service' %}
+                <span class="now-serving">NOW SERVING</span>
+              {% elif positions.get(entry.id) %}
+                {{ positions[entry.id] }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+
             {% if entry.priority_type != 'normal' %}
               <span class="badge bg-danger mb-2">{{ entry.priority_type|capitalize }} priority</span>
             {% endif %}
-            <p class="small text-muted mb-1">Position: <span id="position-{{ entry.id }}">—</span></p>
+
+            <p class="small text-muted mb-1">Status: <span id="status-{{ entry.id }}">{{ entry.status|capitalize }}</span></p>
             <p class="small text-muted">
               Est. wait:
               <span id="estimate-{{ entry.id }}">
                 {% if entry.deterministic_estimate is not none %}{{ entry.deterministic_estimate }} min{% else %}—{% endif %}
               </span>
             </p>
+
             {% if qr_codes.get(entry.id) %}
-              <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR Code" class="img-fluid mt-2" style="max-width:150px;">
+              <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR Code" class="img-fluid mt-2" style="max-width:130px;">
             {% endif %}
+
             <div>
               <a href="{{ url_for('customer.token_details', entry_id=entry.id) }}" class="btn btn-outline-secondary btn-sm mt-2">View Details</a>
             </div>
@@ -87,8 +118,8 @@
 <script>
   const socket = io();
 
-  // Keep a lookup of this customer's own active tokens, by token string,
-  // so we know which "customer_called" events are actually for us.
+  // Lookup of this customer's own active tokens, by token string,
+  // so we know which incoming events are actually for us.
   const myTokens = {
     {% for entry in active_entries %}
       "{{ entry.token_number }}": {{ entry.id }},
@@ -96,14 +127,23 @@
   };
 
   socket.on('position_update', (data) => {
-    const posCell = document.getElementById(`position-${data.entry_id}`);
-    if (posCell) posCell.textContent = `#${data.position}`;
+    const posEl = document.getElementById(`position-${data.entry_id}`);
+    if (!posEl) return;
+
+    // Don't overwrite a "NOW SERVING" display with a stale number
+    if (posEl.querySelector('.now-serving')) return;
+
+    posEl.classList.add('bump');
+    setTimeout(() => {
+      posEl.textContent = data.position === 1 ? '1' : data.position;
+      posEl.classList.remove('bump');
+    }, 150);
 
     const estCell = document.getElementById(`estimate-${data.entry_id}`);
     if (estCell) estCell.textContent = `${data.estimate} min`;
   });
 
-  `socket.on('customer_called', (data) => {
+  socket.on('customer_called', (data) => {
     const entryId = myTokens[data.token];
     if (!entryId) return;
 
@@ -148,6 +188,22 @@
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
+  });
+
+  socket.on('service_completed', (data) => {
+    const entryId = myTokens[data.token];
+    if (!entryId) return;
+
+    const alertBox = document.getElementById('live-alert');
+    if (alertBox) {
+      alertBox.innerHTML = `
+        <div class="alert alert-info mb-4">
+          Token <strong>${data.token}</strong> (${data.service_name}) is complete. Refreshing...
+        </div>
+      `;
+    }
+
+    setTimeout(() => window.location.reload(), 1500);
   });
 </script>
 {% endblock %}

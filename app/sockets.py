@@ -6,6 +6,9 @@ from app.extensions import socketio
 @socketio.on('connect')
 def handle_connect():
     """Automatically joins the right room the moment a user's browser connects."""
+    # Every connection - logged in or not - can receive public display updates
+    join_room('display_room')
+
     if current_user.is_authenticated:
         if current_user.role == 'customer':
             join_room(f'customer_{current_user.id}')

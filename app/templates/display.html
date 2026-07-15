@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartQueue - Now Serving</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0b1220;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+        }
+        .brand {
+            font-size: 1.8rem;
+            font-weight: 700;
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #1e293b;
+        }
+        .counter-card {
+            background: #131c31;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            border: 2px solid #1e293b;
+        }
+        .counter-label {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .now-serving-token {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #22c55e;
+            margin: 0.5rem 0;
+        }
+        .idle-token {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #475569;
+            margin: 0.5rem 0;
+        }
+        .next-up {
+            font-size: 1.3rem;
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        .flash-highlight {
+            animation: flash 1.2s ease;
+        }
+        @keyframes flash {
+            0% { background: #22c55e33; }
+            100% { background: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="brand">🏦 SmartQueue - Now Serving</div>
+
+<div class="container-fluid py-5">
+  <div class="row g-4" id="board">
+    {% for item in board %}
+      <div class="col-md-4">
+        <div class="counter-card" id="counter-card-{{ item.counter.id }}" data-counter-number="{{ item.counter.counter_number }}">
+          <div class="counter-label">Counter {{ item.counter.counter_number }} — {{ item.counter.service.name }}</div>
+
+          <div class="now-serving-label small text-muted mt-3">Now Serving</div>
+          {% if item.now_serving %}
+            <div class="now-serving-token" id="serving-{{ item.counter.id }}">{{ item.now_serving.token_number }}</div>
+          {% else %}
+            <div class="idle-token" id="serving-{{ item.counter.id }}">—</div>
+          {% endif %}
+
+          <div class="next-up" id="next-{{ item.counter.id }}">
+            {% if item.next_up %}Next: {{ item.next_up.token_number }}{% else %}Next: —{% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="col-12 text-center text-muted">
+        <p class="fs-4">No active counters configured yet.</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  // Map counter_number -> DOM element, since backend events only carry counter_number
+  const counterCards = {};
+  document.querySelectorAll('.counter-card').forEach(card => {
+    counterCards[card.dataset.counterNumber] = card;
+  });
+
+  socket.on('counter_called', (data) => {
+    const card = counterCards[data.counter];
+    if (!card) return;
+
+    const servingEl = card.querySelector(`[id^="serving-"]`);
+    if (servingEl) {
+      servingEl.textContent = data.token;
+      servingEl.classList.remove('idle-token');
+      servingEl.classList.add('now-serving-token');
+    }
+
+    card.classList.add('flash-highlight');
+    setTimeout(() => card.classList.remove('flash-highlight'), 1200);
+
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(
+        `Token ${data.token.split('').join(' ')}. Please proceed to counter ${data.counter}.`
+      );
+      utterance.rate = 0.85;
+      window.speechSynthesis.speak(utterance);
+    }
+  });
+
+  // Complete/no-show changes are simplest to reflect with a refresh,
+  // since the "next up" customer also needs to be recomputed.
+  socket.on('display_refresh', () => {
+    setTimeout(() => window.location.reload(), 1000);
+  });
+</script>
+
+</body>
+</html>

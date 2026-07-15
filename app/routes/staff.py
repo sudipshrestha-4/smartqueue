@@ -45,15 +45,20 @@ def call_next():
 
     next_entry.calculate_actual_wait()
     db.session.commit()
-    broadcast_queue_updates(service_id=next_entry.service_id)
 
     broadcast_queue_updates(service_id=next_entry.service_id)
 
-    # Notify customer in real time (built out fully in Phase 8)
+    # Notify customer in real time
     socketio.emit('customer_called', {
         'token': next_entry.token_number,
         'counter': counter.counter_number
     }, room=f'customer_{next_entry.customer_id}')
+
+    # Notify the public counter screen
+    socketio.emit('counter_called', {
+        'token': next_entry.token_number,
+        'counter': counter.counter_number
+    }, room='display_room')
 
     flash(f'Called token {next_entry.token_number}.', 'success')
     return redirect(url_for('staff.dashboard'))
@@ -67,9 +72,17 @@ def complete_service(entry_id):
     entry.status = 'completed'
     entry.service_completion_time = datetime.utcnow()
     db.session.commit()
-    broadcast_queue_updates(service_id=entry.service_id)
 
     broadcast_queue_updates(service_id=entry.service_id)
+
+    # Let the customer's page know their token is done so it can refresh
+    # and offer to join that same service's queue again if they want.
+    socketio.emit('service_completed', {
+        'token': entry.token_number,
+        'service_name': entry.service.name
+    }, room=f'customer_{entry.customer_id}')
+
+    socketio.emit('display_refresh', {}, room='display_room')
 
     flash(f'Token {entry.token_number} marked as completed.', 'success')
     return redirect(url_for('staff.dashboard'))
@@ -82,9 +95,15 @@ def mark_no_show(entry_id):
     entry = QueueEntry.query.get_or_404(entry_id)
     entry.status = 'no_show'
     db.session.commit()
-    broadcast_queue_updates(service_id=entry.service_id)
 
     broadcast_queue_updates(service_id=entry.service_id)
+
+    socketio.emit('service_completed', {
+        'token': entry.token_number,
+        'service_name': entry.service.name
+    }, room=f'customer_{entry.customer_id}')
+
+    socketio.emit('display_refresh', {}, room='display_room')
 
     flash(f'Token {entry.token_number} marked as no-show.', 'warning')
     return redirect(url_for('staff.dashboard'))

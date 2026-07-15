@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.extensions import db
 from app.utils.decorators import role_required
-from app.utils.queue_logic import broadcast_queue_updates, calculate_deterministic_estimate
+from app.utils.queue_logic import broadcast_queue_updates, calculate_deterministic_estimate, get_ordered_queue
 from app.utils.token_generator import generate_token_number
 from app.utils.qr_generator import generate_qr_code
 from app.models.service import Service
@@ -31,6 +31,17 @@ def dashboard():
 
     db.session.commit()
 
+    # Initial queue position for each entry, so it's not blank until the
+    # next SocketIO event happens to fire
+    positions = {}
+    for entry in active_entries:
+        if entry.status == 'waiting':
+            ordered = get_ordered_queue(service_id=entry.service_id)
+            for idx, e in enumerate(ordered):
+                if e.id == entry.id:
+                    positions[entry.id] = idx + 1
+                    break
+
     # A QR code per active entry, keyed by entry id
     qr_codes = {
         entry.id: generate_qr_code(entry.token_number)
@@ -46,7 +57,8 @@ def dashboard():
         'customer/dashboard.html',
         available_services=available_services,
         active_entries=active_entries,
-        qr_codes=qr_codes
+        qr_codes=qr_codes,
+        positions=positions
     )
 
 
