@@ -16,4 +16,13 @@ def generate_token_number(prefix='A'):
     ).count()
 
     next_number = today_count + 1
-    return f"{prefix}-{next_number:03d}"  # e.g. A-001, A-002 ... A-999
+    candidate = f"{prefix}-{next_number:03d}"
+
+    # today_count can undercount if old/leftover rows already used this
+    # exact token string - keep bumping the number until we find one
+    # that's actually free in the database.
+    while QueueEntry.query.filter_by(token_number=candidate).first() is not None:
+        next_number += 1
+        candidate = f"{prefix}-{next_number:03d}"
+
+    return candidate  # e.g. A-001, A-002 ... A-999

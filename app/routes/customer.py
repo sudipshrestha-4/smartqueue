@@ -114,21 +114,31 @@ def join_queue():
         return redirect(url_for('customer.dashboard'))
 
     prefix = 'E' if priority_type == 'emergency' else ('P' if priority_type != 'normal' else 'N')
-    token_number = generate_token_number(prefix=prefix)
 
-    new_entry = QueueEntry(
-        token_number=token_number,
-        customer_id=current_user.id,
-        service_id=service_id,
-        priority_type=priority_type,
-        status='waiting',
-        arrival_time=datetime.utcnow()
-    )
-    db.session.add(new_entry)
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
+    max_attempts = 5
+    new_entry = None
+    for attempt in range(max_attempts):
+        token_number = generate_token_number(prefix=prefix)
+
+        new_entry = QueueEntry(
+            token_number=token_number,
+            customer_id=current_user.id,
+            service_id=service_id,
+            priority_type=priority_type,
+            status='waiting',
+            arrival_time=datetime.utcnow()
+        )
+        db.session.add(new_entry)
+        try:
+            db.session.commit()
+            break
+        except IntegrityError as e:
+            print("DB ERROR:", e)
+            db.session.rollback()
+            new_entry = None
+            continue
+
+    if new_entry is None:
         flash('That was a close call - please try joining again.', 'warning')
         return redirect(url_for('customer.dashboard'))
 
