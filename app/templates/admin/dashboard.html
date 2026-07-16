@@ -4,6 +4,12 @@
 
 <h2 class="mb-4">Admin Dashboard</h2>
 
+<div class="mb-4">
+  <a href="{{ url_for('admin.analytics') }}" class="btn btn-outline-primary">
+    <i class="bi bi-bar-chart-line"></i> View Analytics & Reports
+  </a>
+</div>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for category, message in messages %}
     <div class="alert alert-{{ category }}">{{ message }}</div>

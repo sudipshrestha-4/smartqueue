@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 
@@ -110,3 +110,102 @@ def assign_counter(staff_id):
         flash(f'{staff.name} unassigned from their counter.', 'info')
 
     return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/analytics')
+@login_required
+@role_required('admin')
+def analytics():
+    days = request.args.get('days', 7, type=int)
+    if days not in (7, 30, 90):
+        days = 7
+    start_date = date.today() - timedelta(days=days - 1)
+    start_dt = datetime.combine(start_date, datetime.min.time())
+
+    entries = QueueEntry.query.filter(QueueEntry.arrival_time >= start_dt).all()
+
+    daily_map = {}
+    for e in entries:
+        key = e.arrival_time.date()
+        daily_map[key] = daily_map.get(key, 0) + 1
+    all_days = [start_date + timedelta(days=i) for i in range(days)]
+    daily_labels = [d.strftime('%b %d') for d in all_days]
+    daily_values = [daily_map.get(d, 0) for d in all_days]
+
+    hourly_map = {}
+    for e in entries:
+        h = e.arrival_time.hour
+        hourly_map[h] = hourly_map.get(h, 0) + 1
+    hourly_labels = [f'{h}:00' for h in range(24)]
+    hourly_values = [hourly_map.get(h, 0) for h in range(24)]
+
+    dow_names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    dow_map = {}
+    for e in entries:
+        idx = (e.arrival_time.weekday() + 1) % 7
+        dow_map[idx] = dow_map.get(idx, 0) + 1
+    dow_values = [dow_map.get(i, 0) for i in range(7)]
+
+    priority_labels = ['normal', 'elderly', 'disabled', 'pregnant', 'emergency']
+    priority_map = {}
+    for e in entries:
+        priority_map[e.priority_type] = priority_map.get(e.priority_type, 0) + 1
+    priority_values = [priority_map.get(p, 0) for p in priority_labels]
+
+    service_stats = []
+    for service in Service.query.order_by(Service.name).all():
+        service_entries = [e for e in entries if e.service_id == service.id]
+        total = len(service_entries)
+        completed = sum(1 for e in service_entries if e.status == 'completed')
+        no_show = sum(1 for e in service_entries if e.status == 'no_show')
+
+        actual_waits = [e.actual_wait_time for e in service_entries if e.actual_wait_time is not None]
+        est_waits = [e.deterministic_estimate for e in service_entries if e.deterministic_estimate is not None]
+
+        service_stats.append({
+            'name': service.name,
+            'total': total,
+            'completed': completed,
+            'no_show': no_show,
+            'no_show_rate': round((no_show / total * 100), 1) if total else 0,
+            'avg_actual_wait': round(sum(actual_waits) / len(actual_waits), 1) if actual_waits else None,
+            'avg_estimated_wait': round(sum(est_waits) / len(est_waits), 1) if est_waits else None,
+        })
+
+    counter_stats = []
+    for counter in Counter.query.order_by(Counter.counter_number).all():
+        served = sum(
+            1 for e in entries
+            if e.counter_id == counter.id and e.status == 'completed'
+        )
+        counter_stats.append({
+            'number': counter.counter_number,
+            'service': counter.service.name if counter.service else 'Unassigned',
+            'status': counter.status,
+            'served': served,
+        })
+
+    total_entries = len(entries)
+    total_completed = sum(1 for e in entries if e.status == 'completed')
+    total_no_show = sum(1 for e in entries if e.status == 'no_show')
+    all_actual_waits = [e.actual_wait_time for e in entries if e.actual_wait_time is not None]
+
+    summary = {
+        'total_entries': total_entries,
+        'total_completed': total_completed,
+        'total_no_show': total_no_show,
+        'no_show_rate': round((total_no_show / total_entries * 100), 1) if total_entries else 0,
+        'overall_avg_wait': round(sum(all_actual_waits) / len(all_actual_waits), 1) if all_actual_waits else None,
+    }
+
+    return render_template(
+        'admin/analytics.html',
+        days=days,
+        daily_labels=daily_labels, daily_values=daily_values,
+        hourly_labels=hourly_labels, hourly_values=hourly_values,
+        dow_labels=dow_names, dow_values=dow_values,
+        priority_labels=priority_labels, priority_values=priority_values,
+        service_stats=service_stats,
+        counter_stats=counter_stats,
+        summary=summary
+    )

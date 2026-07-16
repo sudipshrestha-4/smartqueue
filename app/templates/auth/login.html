@@ -19,11 +19,34 @@
       </div>
       <div class="mb-3">
         {{ form.password.label(class="form-label") }}
-        {{ form.password(class="form-control") }}
+        <div class="input-group">
+          {{ form.password(class="form-control", id="password") }}
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
       </div>
       {{ form.submit(class="btn btn-primary") }}
     </form>
     <p class="mt-3">No account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(fieldId, btn) {
+  const input = document.getElementById(fieldId);
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.remove('bi-eye');
+    icon.classList.add('bi-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.remove('bi-eye-slash');
+    icon.classList.add('bi-eye');
+  }
+}
+</script>
 {% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Analytics - SmartQueue{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">Analytics & Reporting</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('admin.analytics', days=7) }}"
+       class="btn btn-sm {{ 'btn-primary' if days == 7 else 'btn-outline-primary' }}">7 Days</a>
+    <a href="{{ url_for('admin.analytics', days=30) }}"
+       class="btn btn-sm {{ 'btn-primary' if days == 30 else 'btn-outline-primary' }}">30 Days</a>
+    <a href="{{ url_for('admin.analytics', days=90) }}"
+       class="btn btn-sm {{ 'btn-primary' if days == 90 else 'btn-outline-primary' }}">90 Days</a>
+  </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-primary">{{ summary.total_entries }}</div>
+      <div class="small text-muted">Total Customers</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-success">{{ summary.total_completed }}</div>
+      <div class="small text-muted">Completed</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold text-danger">{{ summary.no_show_rate }}%</div>
+      <div class="small text-muted">No-Show Rate</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card text-center p-3">
+      <div class="fs-3 fw-bold">{{ summary.overall_avg_wait if summary.overall_avg_wait else '—' }} min</div>
+      <div class="small text-muted">Avg Actual Wait</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 1 -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Daily Traffic Trend</h5>
+        <canvas id="dailyChart" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Priority Breakdown</h5>
+        <canvas id="priorityChart" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 2 -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Traffic by Hour of Day</h5>
+        <canvas id="hourlyChart" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Traffic by Day of Week</h5>
+        <canvas id="dowChart" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE PERFORMANCE TABLE -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Service Performance</h5>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Total</th>
+            <th>Completed</th>
+            <th>No-Shows</th>
+            <th>No-Show Rate</th>
+            <th>Avg Estimated Wait</th>
+            <th>Avg Actual Wait</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in service_stats %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.total }}</td>
+            <td>{{ s.completed }}</td>
+            <td>{{ s.no_show }}</td>
+            <td>{{ s.no_show_rate }}%</td>
+            <td>{{ s.avg_estimated_wait if s.avg_estimated_wait else '—' }} min</td>
+            <td>{{ s.avg_actual_wait if s.avg_actual_wait else '—' }} min</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-muted text-center">No data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTER UTILIZATION TABLE -->
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Counter Utilization</h5>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr><th>Counter</th><th>Assigned Service</th><th>Status</th><th>Customers Served</th></tr>
+        </thead>
+        <tbody>
+          {% for c in counter_stats %}
+          <tr>
+            <td>#{{ c.number }}</td>
+            <td>{{ c.service }}</td>
+            <td><span class="badge bg-{{ 'success' if c.status == 'active' else 'secondary' }}">{{ c.status }}</span></td>
+            <td>{{ c.served }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-muted text-center">No counters yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: {{ daily_labels | tojson }},
+    datasets: [{
+      label: 'Customers',
+      data: {{ daily_values | tojson }},
+      borderColor: '#0d6efd',
+      backgroundColor: 'rgba(13,110,253,0.1)',
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+new Chart(document.getElementById('priorityChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ priority_labels | tojson }},
+    datasets: [{
+      data: {{ priority_values | tojson }},
+      backgroundColor: ['#0d6efd', '#ffc107', '#fd7e14', '#20c997', '#dc3545']
+    }]
+  }
+});
+
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ hourly_labels | tojson }},
+    datasets: [{ label: 'Customers', data: {{ hourly_values | tojson }}, backgroundColor: '#0d6efd' }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+new Chart(document.getElementById('dowChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ dow_labels | tojson }},
+    datasets: [{ label: 'Customers', data: {{ dow_values | tojson }}, backgroundColor: '#198754' }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}
