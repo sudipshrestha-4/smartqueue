@@ -4,7 +4,10 @@ from datetime import datetime
 
 from app.extensions import db, socketio
 from app.utils.decorators import role_required
-from app.utils.queue_logic import broadcast_queue_updates, get_ordered_queue, get_next_customer
+from app.utils.queue_logic import (
+    broadcast_queue_updates, get_ordered_queue, get_next_customer,
+    recalculate_avg_service_duration
+)
 from app.models.queue_entry import QueueEntry
 from app.models.counter import Counter
 
@@ -95,6 +98,7 @@ def mark_no_show(entry_id):
     entry = QueueEntry.query.get_or_404(entry_id)
     entry.status = 'no_show'
     db.session.commit()
+    recalculate_avg_service_duration(entry.service_id) 
 
     broadcast_queue_updates(service_id=entry.service_id)
 

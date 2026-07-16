@@ -43,4 +43,23 @@ def create_app(config_name='development'):
     app.register_blueprint(staff_bp, url_prefix='/staff')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
+    _start_background_jobs(app)
+
     return app
+
+
+def _start_background_jobs(app):
+    from app.utils.queue_logic import broadcast_queue_updates
+    from app.models.service import Service
+
+    def periodic_recalculation():
+        with app.app_context():
+            while True:
+                socketio.sleep(20)  # every 20 seconds
+                try:
+                    for service in Service.query.all():
+                        broadcast_queue_updates(service_id=service.id)
+                except Exception as exc:
+                    print(f"[SmartQueue] periodic recalculation error: {exc}")
+
+    socketio.start_background_task(periodic_recalculation)

@@ -163,7 +163,12 @@
   <div class="col-12">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title mb-3">Services</h5>
+        <h5 class="card-title mb-3 d-flex justify-content-between align-items-center">
+  Services
+  <form method="POST" action="{{ url_for('admin.recalculate_durations') }}">
+    <button class="btn btn-sm btn-outline-primary">Recalculate from History</button>
+  </form>
+</h5>
         <table class="table table-sm align-middle">
           <thead>
             <tr>

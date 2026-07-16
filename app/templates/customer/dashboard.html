@@ -117,6 +117,16 @@
 {% block extra_js %}
 <script>
   const socket = io();
+  // Ask permission once, so we can notify even if the tab isn't focused
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  function notifyBrowser(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/static/favicon.ico' });
+    }
+  }
 
   // Lookup of this customer's own active tokens, by token string,
   // so we know which incoming events are actually for us.
@@ -129,6 +139,12 @@
   socket.on('position_update', (data) => {
     const posEl = document.getElementById(`position-${data.entry_id}`);
     if (!posEl) return;
+
+    if (data.position <= 2 && !posEl.dataset.notifiedSoon) {
+      notifyBrowser('Almost your turn', `You're #${data.position} in line - get ready.`);
+      posEl.dataset.notifiedSoon = "1";
+    }
+
 
     // Don't overwrite a "NOW SERVING" display with a stale number
     if (posEl.querySelector('.now-serving')) return;
@@ -146,6 +162,9 @@
   socket.on('customer_called', (data) => {
     const entryId = myTokens[data.token];
     if (!entryId) return;
+
+        notifyBrowser('Your turn!', `Token ${data.token} - proceed to Counter ${data.counter}`);
+
 
     const posEl = document.getElementById(`position-${entryId}`);
     if (posEl) posEl.innerHTML = '<span class="now-serving">NOW SERVING</span>';

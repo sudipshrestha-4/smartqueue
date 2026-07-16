@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from app.extensions import db, socketio
 from app.models.counter import Counter
 from app.models.queue_entry import QueueEntry
+from app.models.service import Service
 
 # Lower number = higher priority
 PRIORITY_RANK = {
@@ -132,3 +134,45 @@ def broadcast_queue_updates(service_id=None):
 
     db.session.commit()
     socketio.emit('queue_updated', {}, room='staff_admin_room')
+
+
+def recalculate_avg_service_duration(service_id, min_samples=5, lookback_days=30):
+    """
+    Recomputes a service's average service duration from real completed
+    QueueEntry history (Service Duration = Completion Time - Start Time),
+    instead of the static default set when the service was created.
+    Only overwrites the default once there's enough real data (min_samples),
+    and only looks at recent history so one unusually slow/fast day doesn't
+    permanently skew today's estimates.
+    """
+    service = Service.query.get(service_id)
+    if not service:
+        return None
+
+    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
+    completed = QueueEntry.query.filter(
+        QueueEntry.service_id == service_id,
+        QueueEntry.status == 'completed',
+        QueueEntry.service_completion_time.isnot(None),
+        QueueEntry.service_start_time.isnot(None),
+        QueueEntry.service_completion_time >= cutoff
+    ).all()
+
+    durations = [e.calculate_service_duration() for e in completed]
+    durations = [d for d in durations if d is not None]
+
+    if len(durations) < min_samples:
+        return service.avg_service_duration
+
+    new_avg = round(sum(durations) / len(durations), 2)
+    service.avg_service_duration = new_avg
+    db.session.commit()
+    return new_avg
+
+
+def recalculate_all_service_durations():
+    """Runs the recalculation for every service. Called from the admin panel."""
+    results = {}
+    for service in Service.query.all():
+        results[service.name] = recalculate_avg_service_duration(service.id)
+    return results

@@ -1,15 +1,59 @@
 from datetime import datetime, date, timedelta
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
 from flask_login import login_required
+import csv
+import io
 
 from app.extensions import db
 from app.utils.decorators import role_required
+from app.utils.queue_logic import recalculate_all_service_durations
 from app.models.counter import Counter
 from app.models.user import User
 from app.models.service import Service
 from app.models.queue_entry import QueueEntry
 
 admin_bp = Blueprint('admin', __name__)
+
+@admin_bp.route('/analytics/export')
+@login_required
+@role_required('admin')
+def export_csv():
+    days = request.args.get('days', 7, type=int)
+    if days not in (7, 30, 90):
+        days = 7
+    start_date = date.today() - timedelta(days=days - 1)
+    start_dt = datetime.combine(start_date, datetime.min.time())
+
+    entries = QueueEntry.query.filter(QueueEntry.arrival_time >= start_dt).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Token', 'Service', 'Priority', 'Status', 'Arrival Time',
+        'Service Start', 'Service Completion', 'Estimated Wait (min)',
+        'Actual Wait (min)'
+    ])
+    for e in entries:
+        writer.writerow([
+            e.token_number,
+            e.service.name if e.service else '',
+            e.priority_type,
+            e.status,
+            e.arrival_time.strftime('%Y-%m-%d %H:%M') if e.arrival_time else '',
+            e.service_start_time.strftime('%Y-%m-%d %H:%M') if e.service_start_time else '',
+            e.service_completion_time.strftime('%Y-%m-%d %H:%M') if e.service_completion_time else '',
+            e.deterministic_estimate if e.deterministic_estimate is not None else '',
+            e.actual_wait_time if e.actual_wait_time is not None else '',
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=smartqueue_report_{days}days.csv'}
+    )
+
+
 
 
 @admin_bp.route('/dashboard')
@@ -209,3 +253,12 @@ def analytics():
         counter_stats=counter_stats,
         summary=summary
     )
+    from app.utils.queue_logic import recalculate_all_service_durations
+
+@admin_bp.route('/recalculate-durations', methods=['POST'])
+@login_required
+@role_required('admin')
+def recalculate_durations():
+    recalculate_all_service_durations()
+    flash('Service durations recalculated from historical data.', 'success')
+    return redirect(url_for('admin.dashboard'))
