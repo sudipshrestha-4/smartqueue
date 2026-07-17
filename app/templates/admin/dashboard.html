@@ -121,14 +121,20 @@
   <!-- STAFF -->
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Staff</h5>
+<div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="card-title mb-0">Staff</h5>
+          <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            + Add Staff
+          </button>
+        </div>
         <table class="table table-sm align-middle">
           <thead>
             <tr>
               <th>Name</th>
               <th>Email</th>
               <th>Assign Counter</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -149,9 +155,15 @@
                   <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
                 </form>
               </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.remove_staff', staff_id=member.id) }}"
+                      onsubmit="return confirm('Remove {{ member.name }}\'s staff account? This cannot be undone.');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                </form>
+              </td>
             </tr>
             {% else %}
-            <tr><td colspan="3" class="text-muted">No staff accounts yet.</td></tr>
+            <tr><td colspan="4" class="text-muted">No staff accounts yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -195,4 +207,44 @@
 
 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm mt-4">Logout</a>
 
+<!-- ADD STAFF MODAL -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.add_staff') }}" novalidate>
+        {{ staff_form.hidden_tag() }}
+        <div class="modal-header">
+          <h5 class="modal-title" id="addStaffModalLabel">Add Staff Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            {{ staff_form.name.label(class="form-label") }}
+            {{ staff_form.name(class="form-control") }}
+          </div>
+          <div class="mb-3">
+            {{ staff_form.email.label(class="form-label") }}
+            {{ staff_form.email(class="form-control") }}
+          </div>
+          <div class="mb-3">
+            {{ staff_form.phone.label(class="form-label") }}
+            {{ staff_form.phone(class="form-control", maxlength="10", inputmode="numeric") }}
+          </div>
+          <div class="mb-3">
+            {{ staff_form.password.label(class="form-label") }}
+            {{ staff_form.password(class="form-control") }}
+          </div>
+          <div class="mb-3">
+            {{ staff_form.confirm_password.label(class="form-label") }}
+            {{ staff_form.confirm_password(class="form-control") }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          {{ staff_form.submit(class="btn btn-primary") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

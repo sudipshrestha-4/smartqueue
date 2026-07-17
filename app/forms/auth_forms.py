@@ -59,3 +59,28 @@ class RegisterForm(FlaskForm):
     )
 
     submit = SubmitField('Register')
+class StaffForm(FlaskForm):
+    name = StringField('Full Name', validators=[DataRequired(), Length(min=2, max=100)])
+
+    email = StringField('Email', validators=[
+        DataRequired(),
+        Email(message='Enter a valid email address.'),
+        validate_real_email
+    ])
+
+    phone = StringField('Phone Number', validators=[
+        DataRequired(),
+        Regexp(r'^\d{10}$', message='Phone number must be exactly 10 digits (numbers only).')
+    ])
+
+    password = PasswordField('Password', validators=[
+        DataRequired(),
+        validate_strong_password
+    ])
+
+    confirm_password = PasswordField(
+        'Confirm Password',
+        validators=[DataRequired(), EqualTo('password', message='Passwords must match.')]
+    )
+
+    submit = SubmitField('Create Staff Account')

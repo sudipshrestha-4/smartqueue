@@ -1,6 +1,8 @@
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
-from flask_login import login_required
+from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash
+from app.forms.auth_forms import StaffForm
 import csv
 import io
 
@@ -88,13 +90,59 @@ def dashboard():
         'total_staff': len(staff_members),
     }
 
+    staff_form = StaffForm()
+
     return render_template(
         'admin/dashboard.html',
         counters=counters,
         staff_members=staff_members,
         services=services,
-        stats=stats
+        stats=stats,
+        staff_form=staff_form
     )
+
+
+@admin_bp.route('/staff/add', methods=['POST'])
+@login_required
+@role_required('admin')
+def add_staff():
+    form = StaffForm()
+    if form.validate_on_submit():
+        existing_user = User.query.filter_by(email=form.email.data.lower().strip()).first()
+        if existing_user:
+            flash('An account with this email already exists.', 'warning')
+            return redirect(url_for('admin.dashboard'))
+
+        staff = User(
+            name=form.name.data.strip(),
+            email=form.email.data.lower().strip(),
+            phone=form.phone.data.strip(),
+            password_hash=generate_password_hash(form.password.data),
+            role='staff',
+            is_active=True
+        )
+        db.session.add(staff)
+        db.session.commit()
+        flash(f'Staff account created for {staff.name}.', 'success')
+    else:
+        for field_name, errors in form.errors.items():
+            label = getattr(form, field_name).label.text
+            for error in errors:
+                flash(f'{label}: {error}', 'danger')
+
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/staff/<int:staff_id>/remove', methods=['POST'])
+@login_required
+@role_required('admin')
+def remove_staff(staff_id):
+    staff = User.query.filter_by(id=staff_id, role='staff').first_or_404()
+    name = staff.name
+    db.session.delete(staff)
+    db.session.commit()
+    flash(f'Removed staff account for {name}.', 'info')
+    return redirect(url_for('admin.dashboard'))
 
 
 @admin_bp.route('/counters/add', methods=['POST'])
