@@ -301,7 +301,7 @@ def analytics():
         counter_stats=counter_stats,
         summary=summary
     )
-    from app.utils.queue_logic import recalculate_all_service_durations
+
 
 @admin_bp.route('/recalculate-durations', methods=['POST'])
 @login_required

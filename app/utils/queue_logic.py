@@ -109,11 +109,16 @@ def calculate_deterministic_estimate(entry):
     return round(estimate, 2)
 
 
-def broadcast_queue_updates(service_id=None):
+def broadcast_queue_updates(service_id=None, notify_staff=True):
     """
     Call this after any queue change (join, call-next, complete, no-show).
     Sends fresh position numbers and updated wait estimates to each waiting
     customer, and tells staff/admin dashboards to refresh.
+
+    notify_staff=False is used by the periodic background recalculation,
+    which only refreshes wait-time estimates and shouldn't force every
+    staff/admin dashboard to reload when nothing about the queue itself
+    (who's in it, who's been called) has actually changed.
     """
     ordered = get_ordered_queue(service_id=service_id)
 
@@ -133,7 +138,9 @@ def broadcast_queue_updates(service_id=None):
         )
 
     db.session.commit()
-    socketio.emit('queue_updated', {}, room='staff_admin_room')
+
+    if notify_staff:
+        socketio.emit('queue_updated', {}, room='staff_admin_room')
 
 
 def recalculate_avg_service_duration(service_id, min_samples=5, lookback_days=30):

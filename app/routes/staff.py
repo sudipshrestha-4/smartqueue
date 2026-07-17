@@ -19,7 +19,8 @@ staff_bp = Blueprint('staff', __name__)
 @role_required('staff')
 def dashboard():
     counter = current_user.counter  # via assigned_counter_id relationship
-    queue = get_ordered_queue()
+    queue = get_ordered_queue(service_id=counter.service_id) if counter and counter.service_id else []
+
     called_entry = QueueEntry.query.filter_by(
         counter_id=counter.id if counter else None, status='called'
     ).first()
@@ -66,12 +67,21 @@ def call_next():
     flash(f'Called token {next_entry.token_number}.', 'success')
     return redirect(url_for('staff.dashboard'))
 
-
 @staff_bp.route('/complete-service/<int:entry_id>', methods=['POST'])
 @login_required
 @role_required('staff')
 def complete_service(entry_id):
-    entry = QueueEntry.query.get_or_404(entry_id)
+    counter = current_user.counter
+    if not counter:
+        flash('You are not assigned to a counter. Contact an admin.', 'danger')
+        return redirect(url_for('staff.dashboard'))
+
+    entry = QueueEntry.query.filter_by(id=entry_id, counter_id=counter.id).first_or_404()
+
+    if entry.status not in ('called', 'in_service'):
+        flash('That token is not currently at your counter.', 'warning')
+        return redirect(url_for('staff.dashboard'))
+
     entry.status = 'completed'
     entry.service_completion_time = datetime.utcnow()
     db.session.commit()
@@ -95,10 +105,20 @@ def complete_service(entry_id):
 @login_required
 @role_required('staff')
 def mark_no_show(entry_id):
-    entry = QueueEntry.query.get_or_404(entry_id)
+    counter = current_user.counter
+    if not counter:
+        flash('You are not assigned to a counter. Contact an admin.', 'danger')
+        return redirect(url_for('staff.dashboard'))
+
+    entry = QueueEntry.query.filter_by(id=entry_id, counter_id=counter.id).first_or_404()
+
+    if entry.status not in ('called', 'in_service'):
+        flash('That token is not currently at your counter.', 'warning')
+        return redirect(url_for('staff.dashboard'))
+
     entry.status = 'no_show'
     db.session.commit()
-    recalculate_avg_service_duration(entry.service_id) 
+    recalculate_avg_service_duration(entry.service_id)
 
     broadcast_queue_updates(service_id=entry.service_id)
 

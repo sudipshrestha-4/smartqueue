@@ -58,7 +58,8 @@ def _start_background_jobs(app):
                 socketio.sleep(20)  # every 20 seconds
                 try:
                     for service in Service.query.all():
-                        broadcast_queue_updates(service_id=service.id)
+                     broadcast_queue_updates(service_id=service.id, notify_staff=False)
+   
                 except Exception as exc:
                     print(f"[SmartQueue] periodic recalculation error: {exc}")
 
