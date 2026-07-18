@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from config import config
 from app.extensions import db, login_manager, socketio, migrate
@@ -30,6 +32,9 @@ def create_app(config_name='development'):
 
     from app import models  # noqa: F401 - ensures models are registered
 
+    with app.app_context():
+        db.create_all()
+
     # Register blueprints
     from app.routes.main import main_bp
     from app.routes.auth import auth_bp
@@ -43,7 +48,8 @@ def create_app(config_name='development'):
     app.register_blueprint(staff_bp, url_prefix='/staff')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    _start_background_jobs(app)
+    if not os.environ.get('VERCEL'):
+        _start_background_jobs(app)
 
     return app
 
