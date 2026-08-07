@@ -1,228 +1,584 @@
-{% extends "base.html" %}
+{% extends "customer/base.html" %}
 {% block title %}Customer Dashboard - SmartQueue{% endblock %}
-{% block content %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block page_subtitle %}<span class="live-dot"></span>Welcome back, {{ current_user.name }} — track your queue in real time{% endblock %}
 
-<h2 class="mb-4">Customer Dashboard</h2>
+{% block topbar_actions %}
+<div class="topbar-actions-group">
+  {% if active_entries %}
+  <span class="live-badge"><span class="live-dot"></span> Live</span>
+  {% endif %}
+  <a href="{{ url_for('auth.profile') }}" class="btn btn-sm btn-outline-secondary topbar-btn" title="My Profile">
+    <i class="bi bi-person"></i><span class="d-none d-md-inline ms-1">Profile</span>
+  </a>
+  <a href="{{ url_for('main.display') }}" target="_blank" class="btn btn-sm btn-outline-secondary topbar-btn" title="Public Display">
+    <i class="bi bi-display"></i><span class="d-none d-md-inline ms-1">Display</span>
+  </a>
+</div>
+{% endblock %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-  {% endfor %}
-{% endwith %}
+{% block customer_content %}
 
-<!-- Live "it's your turn" banner appears here via JS -->
+<!-- Toast notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3 customer-toast-container" id="toastContainer"></div>
+
 <div id="live-alert"></div>
 
-<style>
-  .position-number {
-    font-size: 3rem;
-    font-weight: 700;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-  }
-  .position-number.bump {
-    transform: scale(1.15);
-    opacity: 0.6;
-  }
-  .now-serving {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #198754;
-  }
-</style>
+{# ── Computed overview stats (from existing template data) ── #}
+{% set active_count = active_entries|length %}
+{% set pending_count = pending_services|length %}
+{% set completed_list = queue_history|selectattr('status', 'equalto', 'completed')|list %}
+{% set completed_count = completed_list|length %}
+{% set wait_total = namespace(value=0) %}
+{% for h in completed_list %}
+  {% if h.actual_wait_time is not none %}
+    {% set wait_total.value = wait_total.value + h.actual_wait_time %}
+  {% endif %}
+{% endfor %}
+{% set avg_wait = (wait_total.value / completed_count)|round(0)|int if completed_count > 0 else '—' %}
+
+<!-- Overview Statistics -->
+<div class="row g-3 mb-4 customer-stats-row">
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-card-accent">
+      <div class="stat-icon indigo"><i class="bi bi-ticket-perforated"></i></div>
+      <div class="stat-content">
+        <div class="stat-value" id="stat-active">{{ active_count }}</div>
+        <div class="stat-label">Active Tokens</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-card-accent">
+      <div class="stat-icon warning"><i class="bi bi-list-ol"></i></div>
+      <div class="stat-content">
+        <div class="stat-value" id="stat-pending">{{ pending_count }}</div>
+        <div class="stat-label">Up Next</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-card-accent">
+      <div class="stat-icon success"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-content">
+        <div class="stat-value">{{ completed_count }}</div>
+        <div class="stat-label">Completed Visits</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-sm-6">
+    <div class="stat-card stat-card-accent">
+      <div class="stat-icon info"><i class="bi bi-clock-history"></i></div>
+      <div class="stat-content">
+        <div class="stat-value">{{ avg_wait }}{% if avg_wait != '—' %}<span class="stat-unit">min</span>{% endif %}</div>
+        <div class="stat-label">Avg. Wait Time</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if pending_services %}
+<div class="pending-banner mb-4">
+  <div class="pending-banner-icon"><i class="bi bi-arrow-right-circle"></i></div>
+  <div class="pending-banner-body">
+    <strong>Services queued up next</strong>
+    <p class="mb-0">
+      {% for ps in pending_services %}{{ ps.service.name }}{% if not loop.last %} <span class="pending-separator">→</span> {% endif %}{% endfor %}
+    </p>
+  </div>
+</div>
+{% endif %}
 
 {% if active_entries %}
-  <h5 class="mb-3">Your Active Tokens</h5>
-  <div class="row g-3 mb-4">
+<!-- Quick Actions -->
+<div class="quick-actions-bar mb-4">
+  <span class="quick-actions-label"><i class="bi bi-lightning-charge"></i> Quick Actions</span>
+  <div class="quick-actions-group">
     {% for entry in active_entries %}
-      <div class="col-md-4">
-        <div class="card h-100" id="entry-card-{{ entry.id }}">
-          <div class="card-body text-center">
-            <p class="text-muted mb-1">{{ entry.service.name }}</p>
-            <h5 class="mb-2">{{ entry.token_number }}</h5>
+    <a href="{{ url_for('customer.track_token', entry_id=entry.id) }}"
+       class="quick-action-btn">
+      <i class="bi bi-radar"></i>
+      <span>Track {{ entry.token_number }}</span>
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('main.display') }}" target="_blank" class="quick-action-btn">
+      <i class="bi bi-display"></i><span>Live Display</span>
+    </a>
+  </div>
+</div>
 
-            <div class="text-muted small">Current Position</div>
-            <div class="position-number" id="position-{{ entry.id }}">
-              {% if entry.status == 'called' or entry.status == 'in_service' %}
-                <span class="now-serving">NOW SERVING</span>
-              {% elif positions.get(entry.id) %}
-                {{ positions[entry.id] }}
+<!-- Live Queue Tracking -->
+<div class="section-heading mb-3">
+  <div class="section-heading-left">
+    <i class="bi bi-broadcast"></i>
+    <div>
+      <h6>Live Queue Tracking</h6>
+      <small>Updates automatically — no refresh needed</small>
+    </div>
+  </div>
+  <span class="live-badge live-badge-sm"><span class="live-dot"></span> Connected</span>
+</div>
+
+<div class="row g-4 mb-4">
+  {% for entry in active_entries %}
+  {% set t = tracking.get(entry.id, {}) %}
+  {% set status_label, status_color = get_status_display(entry.status) %}
+  <div class="col-lg-6">
+    <div class="queue-status-card {{ 'is-serving' if entry.status in ('called', 'in_service') else '' }}"
+         id="entry-card-{{ entry.id }}" data-entry-id="{{ entry.id }}">
+
+      <!-- Card Header -->
+      <div class="queue-status-header">
+        <div class="queue-status-header-left">
+          <div class="service-badge"><i class="bi bi-bank2"></i> {{ entry.service.name }}</div>
+          <div class="token-display">{{ entry.token_number }}</div>
+        </div>
+        <span class="status-pill status-pill-{{ status_color }}" id="status-badge-{{ entry.id }}">
+          {{ status_label }}
+        </span>
+      </div>
+
+      <!-- Progress Tracker -->
+      <div class="progress-tracker">
+        {% set steps = [
+          ('waiting', 'Waiting', 'bi-hourglass-split'),
+          ('called', 'Called', 'bi-megaphone'),
+          ('in_service', 'In Service', 'bi-person-check'),
+          ('completed', 'Done', 'bi-check-lg')
+        ] %}
+        {% set status_order = ['waiting', 'called', 'in_service', 'completed'] %}
+        {% set current_idx = status_order.index(entry.status) if entry.status in status_order else 0 %}
+        {% for step_key, step_label, step_icon in steps %}
+        {% set step_idx = loop.index0 %}
+        <div class="tracker-step {{ 'completed' if step_idx < current_idx else ('active' if step_idx == current_idx else '') }}">
+          <div class="tracker-step-icon"><i class="bi {{ step_icon }}"></i></div>
+          <div class="tracker-step-label">{{ step_label }}</div>
+        </div>
+        {% if not loop.last %}<div class="tracker-connector {{ 'filled' if step_idx < current_idx else '' }}"></div>{% endif %}
+        {% endfor %}
+      </div>
+
+      <!-- Metrics Grid -->
+      <div class="queue-metrics">
+        <div class="queue-metric">
+          <div class="queue-metric-icon"><i class="bi bi-people"></i></div>
+          <div class="queue-metric-body">
+            <div class="queue-metric-label">Position</div>
+            <div class="queue-metric-value" id="position-{{ entry.id }}">
+              {% if entry.status in ('called', 'in_service') %}
+                <span class="now-serving">NOW</span>
               {% else %}
-                —
+                {{ t.get('position', '—') }}
               {% endif %}
             </div>
-
-            {% if entry.priority_type != 'normal' %}
-              <span class="badge bg-danger mb-2">{{ entry.priority_type|capitalize }} priority</span>
-            {% endif %}
-
-            <p class="small text-muted mb-1">Status: <span id="status-{{ entry.id }}">{{ entry.status|capitalize }}</span></p>
-            <p class="small text-muted">
-              Est. wait:
-              <span id="estimate-{{ entry.id }}">
-                {% if entry.deterministic_estimate is not none %}{{ entry.deterministic_estimate }} min{% else %}—{% endif %}
-              </span>
-            </p>
-
-            {% if qr_codes.get(entry.id) %}
-              <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR Code" class="img-fluid mt-2" style="max-width:130px;">
-            {% endif %}
-
-            <div>
-              <a href="{{ url_for('customer.token_details', entry_id=entry.id) }}" class="btn btn-outline-secondary btn-sm mt-2">View Details</a>
+          </div>
+        </div>
+        <div class="queue-metric">
+          <div class="queue-metric-icon"><i class="bi bi-person-lines-fill"></i></div>
+          <div class="queue-metric-body">
+            <div class="queue-metric-label">Ahead</div>
+            <div class="queue-metric-value" id="ahead-{{ entry.id }}">{{ t.get('customers_ahead', '—') }}</div>
+          </div>
+        </div>
+        <div class="queue-metric">
+          <div class="queue-metric-icon"><i class="bi bi-pc-display"></i></div>
+          <div class="queue-metric-body">
+            <div class="queue-metric-label">Counter</div>
+            <div class="queue-metric-value" id="counter-{{ entry.id }}">
+              {% if t.get('counter') %}#{{ t.counter }}{% else %}—{% endif %}
             </div>
           </div>
         </div>
       </div>
-    {% endfor %}
+
+      <!-- Progress Bar -->
+      <div class="queue-progress-section">
+        <div class="queue-progress-header">
+          <span><i class="bi bi-bar-chart-steps"></i> Queue Progress</span>
+          <span class="queue-progress-pct" id="progress-label-{{ entry.id }}">{{ t.get('progress', 0) }}%</span>
+        </div>
+        <div class="progress queue-progress-bar">
+          <div class="progress-bar" id="progress-bar-{{ entry.id }}"
+               style="width: {{ t.get('progress', 0) }}%;"></div>
+        </div>
+      </div>
+
+      <!-- Meta Info -->
+      <div class="queue-meta-row">
+        <div class="queue-meta-chip">
+          <i class="bi bi-clock"></i>
+          <span>Est. Wait</span>
+          <strong id="estimate-{{ entry.id }}">
+            {% if t.get('estimate') is not none %}{{ t.estimate }} min{% else %}—{% endif %}
+          </strong>
+        </div>
+        <div class="queue-meta-chip">
+          <i class="bi bi-flag"></i>
+          <span>Priority</span>
+          <strong class="badge-priority {{ entry.priority_type }}">{{ entry.priority_type|capitalize }}</strong>
+        </div>
+      </div>
+
+      {% if qr_codes.get(entry.id) %}
+      <div class="queue-qr-section">
+        <img src="data:image/png;base64,{{ qr_codes[entry.id] }}" alt="QR tracking link">
+        <p><i class="bi bi-qr-code"></i> Scan to open on mobile</p>
+      </div>
+      {% endif %}
+
+      <!-- Card Actions -->
+      <div class="queue-card-actions">
+        <a href="{{ url_for('customer.track_token', entry_id=entry.id) }}"
+           class="btn btn-primary btn-action-primary">
+          <i class="bi bi-radar"></i> Full Tracking
+        </a>
+        {% if entry.status == 'waiting' %}
+        <button type="button" class="btn btn-outline-danger btn-action-secondary"
+                data-bs-toggle="modal" data-bs-target="#cancelModal-{{ entry.id }}">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+        {% endif %}
+      </div>
+    </div>
   </div>
+
+  <!-- Cancel confirmation modal -->
+  {% if entry.status == 'waiting' %}
+  <div class="modal fade customer-modal" id="cancelModal-{{ entry.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Cancel Token?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to cancel token <strong>{{ entry.token_number }}</strong>
+          for {{ entry.service.name }}? This cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Token</button>
+          <form method="POST" action="{{ url_for('customer.cancel_token', entry_id=entry.id) }}">
+            <button type="submit" class="btn btn-danger">Yes, Cancel</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
 {% endif %}
 
 {% if available_services %}
-  <div class="card mb-4" style="max-width: 500px;">
-    <div class="card-body">
-      <h5 class="card-title">Join a Queue</h5>
-      <form method="POST" action="{{ url_for('customer.join_queue') }}">
-        <div class="mb-3">
-          <label class="form-label">Select Service</label>
-          <select name="service_id" class="form-select" required>
-            <option value="" disabled selected>-- Choose a service --</option>
-            {% for service in available_services %}
-              <option value="{{ service.id }}">{{ service.name }}</option>
-            {% endfor %}
-          </select>
+<div class="row mb-4">
+  <div class="col-lg-8 col-xl-7">
+    <div class="join-queue-card">
+      <div class="card-header-custom">
+        <div class="join-header-icon"><i class="bi bi-plus-circle"></i></div>
+        <div>
+          <h5>{% if active_entries %}Join Another Queue{% else %}Join a Queue{% endif %}</h5>
+          <p>{% if active_entries %}Get a separate token for another service{% else %}Select one or more services — they will be queued in order{% endif %}</p>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Priority (if applicable)</label>
-          <select name="priority_type" class="form-select">
-            <option value="normal" selected>None - Normal queue</option>
-            <option value="elderly">Elderly</option>
-            <option value="disabled">Disabled</option>
-            <option value="pregnant">Pregnant</option>
-            <option value="emergency">Emergency</option>
-          </select>
-          <div class="form-text">Priority customers are served ahead of the normal queue.</div>
+      </div>
+      <div class="card-body-custom">
+        <form method="POST" action="{{ url_for('customer.join_queue') }}">
+          <div class="mb-4">
+            <label class="form-label"><i class="bi bi-grid me-1"></i> Select Service(s)</label>
+            <div class="service-check-list">
+              {% for service in available_services %}
+              <label class="service-check-item" for="svc-{{ service.id }}">
+                <input class="form-check-input" type="checkbox" name="service_ids"
+                       value="{{ service.id }}" id="svc-{{ service.id }}">
+                <div class="service-check-content">
+                  <strong>{{ service.name }}</strong>
+                  <span class="service-duration"><i class="bi bi-clock"></i> ~{{ service.avg_service_duration }} min avg</span>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label"><i class="bi bi-flag me-1"></i> Priority (if applicable)</label>
+            <select name="priority_type" class="form-select form-select-custom">
+              <option value="normal" selected>Normal queue</option>
+              <option value="elderly">Elderly</option>
+              <option value="disabled">Disabled</option>
+              <option value="pregnant">Pregnant</option>
+              <option value="emergency">Emergency</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-join">
+            <i class="bi bi-ticket-perforated"></i> Get Token
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 col-xl-5">
+    <div class="info-panel">
+      <div class="info-panel-icon"><i class="bi bi-info-circle"></i></div>
+      <h6>How it works</h6>
+      <ul>
+        <li><i class="bi bi-check2"></i> Select services you need</li>
+        <li><i class="bi bi-check2"></i> Get your token instantly</li>
+        <li><i class="bi bi-check2"></i> Track position in real time</li>
+        <li><i class="bi bi-check2"></i> Get notified when called</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% elif not active_entries and not pending_services %}
+<div class="empty-state-card">
+  <div class="empty-state-icon"><i class="bi bi-ticket-perforated"></i></div>
+  <h5>No Services Available</h5>
+  <p>There are no services available to join right now. Please check back later.</p>
+</div>
+{% endif %}
+
+<!-- Feedback prompts -->
+{% for entry in feedback_pending %}
+<div class="modal fade customer-modal" id="feedbackModal-{{ entry.id }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('customer.submit_feedback', entry_id=entry.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-star me-2 text-warning"></i>Rate Your Experience</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <button type="submit" class="btn btn-primary">Get Token</button>
+        <div class="modal-body">
+          <p class="text-muted">How was your {{ entry.service.name }} visit? (Token {{ entry.token_number }})</p>
+          <div class="mb-3">
+            <label class="form-label">Rating</label>
+            <div class="star-rating-input">
+              {% for i in range(5, 0, -1) %}
+              <input type="radio" name="rating" value="{{ i }}" id="star-{{ entry.id }}-{{ i }}" required>
+              <label for="star-{{ entry.id }}-{{ i }}"><i class="bi bi-star-fill"></i></label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comment (optional)</label>
+            <textarea name="comment" class="form-control" rows="3" maxlength="500"
+                      placeholder="Tell us about your experience..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button>
+          <button type="submit" class="btn btn-primary">Submit Feedback</button>
+        </div>
       </form>
     </div>
   </div>
-{% else %}
-  <p class="text-muted">You've joined the queue for every available service.</p>
-{% endif %}
+</div>
+{% endfor %}
 
-<a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+<!-- Queue History -->
+{% if queue_history %}
+<div class="section-card history-card mt-2">
+  <div class="section-card-header">
+    <div class="section-card-header-left">
+      <i class="bi bi-clock-history"></i>
+      <h5>Queue History</h5>
+      <span class="badge-count">{{ queue_history|length }}</span>
+    </div>
+  </div>
+  <div class="section-card-body">
+    <div class="table-responsive">
+      <table class="table admin-table history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Service</th>
+            <th>Token</th>
+            <th>Wait Time</th>
+            <th>Duration</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in queue_history %}
+          {% set h_label, h_color = get_status_display(h.status) %}
+          <tr>
+            <td>
+              <span class="history-date">{{ h.arrival_time.strftime('%b %d, %Y') if h.arrival_time else '—' }}</span>
+              {% if h.arrival_time %}
+              <span class="history-time">{{ h.arrival_time.strftime('%I:%M %p') }}</span>
+              {% endif %}
+            </td>
+            <td><span class="history-service">{{ h.service.name }}</span></td>
+            <td><span class="history-token">{{ h.token_number }}</span></td>
+            <td>
+              {% if h.actual_wait_time is not none %}
+              <span class="history-metric"><i class="bi bi-clock"></i> {{ h.actual_wait_time }} min</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% set dur = h.calculate_service_duration() %}
+              {% if dur %}
+              <span class="history-metric"><i class="bi bi-stopwatch"></i> {{ dur }} min</span>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="status-pill status-pill-sm status-pill-{{ h_color }}">{{ h_label }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
+{{ super() }}
 <script>
   const socket = io();
-  // Ask permission once, so we can notify even if the tab isn't focused
+
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  function notifyBrowser(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '/static/favicon.ico' });
-    }
-  }
-
-  // Lookup of this customer's own active tokens, by token string,
-  // so we know which incoming events are actually for us.
   const myTokens = {
     {% for entry in active_entries %}
       "{{ entry.token_number }}": {{ entry.id }},
     {% endfor %}
   };
 
-  socket.on('position_update', (data) => {
-    const posEl = document.getElementById(`position-${data.entry_id}`);
-    if (!posEl) return;
+  const entryIds = [{% for entry in active_entries %}{{ entry.id }}{% if not loop.last %}, {% endif %}{% endfor %}];
 
-    if (data.position <= 2 && !posEl.dataset.notifiedSoon) {
-      notifyBrowser('Almost your turn', `You're #${data.position} in line - get ready.`);
-      posEl.dataset.notifiedSoon = "1";
+  function showToast(title, body, type = 'primary') {
+    const container = document.getElementById('toastContainer');
+    const id = 'toast-' + Date.now();
+    const icons = { primary: 'bi-info-circle', success: 'bi-check-circle', warning: 'bi-exclamation-triangle', danger: 'bi-x-circle', info: 'bi-bell', secondary: 'bi-bell' };
+    const icon = icons[type] || icons.primary;
+    container.insertAdjacentHTML('beforeend', `
+      <div id="${id}" class="toast customer-toast toast-${type} align-items-center border-0" role="alert">
+        <div class="d-flex w-100">
+          <div class="toast-icon"><i class="bi ${icon}"></i></div>
+          <div class="toast-body"><strong>${title}</strong><br>${body}</div>
+          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      </div>`);
+    const toastEl = document.getElementById(id);
+    new bootstrap.Toast(toastEl, { delay: 5000 }).show();
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+  }
+
+  function notifyBrowser(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  }
+
+  function bumpElement(el) {
+    if (!el) return;
+    el.classList.add('value-bump');
+    setTimeout(() => el.classList.remove('value-bump'), 400);
+  }
+
+  function updateTrackingUI(data) {
+    const id = data.entry_id;
+    const posEl = document.getElementById(`position-${id}`);
+    const aheadEl = document.getElementById(`ahead-${id}`);
+    const counterEl = document.getElementById(`counter-${id}`);
+    const estEl = document.getElementById(`estimate-${id}`);
+    const badgeEl = document.getElementById(`status-badge-${id}`);
+    const barEl = document.getElementById(`progress-bar-${id}`);
+    const barLabel = document.getElementById(`progress-label-${id}`);
+
+    if (data.status === 'called' || data.status === 'in_service') {
+      if (posEl) posEl.innerHTML = '<span class="now-serving">NOW</span>';
+    } else if (posEl && data.position) {
+      posEl.textContent = data.position;
+      bumpElement(posEl);
     }
 
+    if (aheadEl && data.customers_ahead !== undefined) {
+      aheadEl.textContent = data.customers_ahead;
+      bumpElement(aheadEl);
+    }
+    if (counterEl) counterEl.textContent = data.counter ? `#${data.counter}` : '—';
+    if (estEl && data.estimate !== undefined) estEl.textContent = `${data.estimate} min`;
+    if (badgeEl && data.status_label) {
+      badgeEl.textContent = data.status_label;
+      badgeEl.className = `status-pill status-pill-${data.status_color || 'secondary'}`;
+    }
+    if (barEl && data.progress !== undefined) {
+      barEl.style.width = `${data.progress}%`;
+      if (barLabel) barLabel.textContent = `${data.progress}%`;
+    }
+  }
 
-    // Don't overwrite a "NOW SERVING" display with a stale number
-    if (posEl.querySelector('.now-serving')) return;
+  socket.on('position_update', (data) => {
+    if (!entryIds.includes(data.entry_id)) return;
 
-    posEl.classList.add('bump');
-    setTimeout(() => {
-      posEl.textContent = data.position === 1 ? '1' : data.position;
-      posEl.classList.remove('bump');
-    }, 150);
+    updateTrackingUI(data);
 
-    const estCell = document.getElementById(`estimate-${data.entry_id}`);
-    if (estCell) estCell.textContent = `${data.estimate} min`;
+    if (data.customers_ahead === 2) {
+      showToast('Almost there!', 'Only 2 customers ahead of you.', 'warning');
+      notifyBrowser('Almost your turn', 'Only 2 customers ahead.');
+    }
+    if (data.position === 1 && data.status === 'waiting') {
+      showToast('You\'re next!', 'Get ready — you are next in line.', 'success');
+    }
+    if (data.counter) {
+      const counterEl = document.getElementById(`counter-${data.entry_id}`);
+      const prev = counterEl?.dataset.counter;
+      if (prev && prev !== String(data.counter)) {
+        showToast('Counter Updated', `Assigned to Counter #${data.counter}`, 'info');
+      }
+      if (counterEl) counterEl.dataset.counter = data.counter;
+    }
   });
 
   socket.on('customer_called', (data) => {
-    const entryId = myTokens[data.token];
+    const entryId = data.entry_id || myTokens[data.token];
     if (!entryId) return;
 
-        notifyBrowser('Your turn!', `Token ${data.token} - proceed to Counter ${data.counter}`);
+    updateTrackingUI({ ...data, entry_id: entryId, status: 'called', status_label: 'Called', status_color: 'warning', customers_ahead: 0, progress: 100 });
+    document.getElementById(`entry-card-${entryId}`)?.classList.add('is-serving');
 
-
-    const posEl = document.getElementById(`position-${entryId}`);
-    if (posEl) posEl.innerHTML = '<span class="now-serving">NOW SERVING</span>';
-
-    const statusCell = document.getElementById(`status-${entryId}`);
-    if (statusCell) statusCell.textContent = 'Called';
-
-    const card = document.getElementById(`entry-card-${entryId}`);
-    if (card) card.classList.add('border-success', 'border-3');
-
-    const alertBox = document.getElementById('live-alert');
-    if (alertBox) {
-      alertBox.innerHTML = `
-        <div class="alert alert-success d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <strong>It's your turn!</strong>
-            Token <strong>${data.token}</strong> — please proceed to Counter ${data.counter}.
-          </div>
-        </div>
-      `;
-    }
+    showToast('Your Turn!', `Token ${data.token} — proceed to Counter ${data.counter}`, 'success');
+    notifyBrowser('Your turn!', `Proceed to Counter ${data.counter}`);
 
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
       osc.connect(ctx.destination);
       osc.start();
       setTimeout(() => osc.stop(), 300);
-    } catch (e) {
-      // Audio not supported/blocked - visual alert above still shows
-    }
+    } catch (e) {}
+  });
 
-    // Voice announcement
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(
-        `Token ${data.token.split('').join(' ')}. Please proceed to counter ${data.counter}.`
-      );
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
+  socket.on('queue_cancelled', (data) => {
+    showToast('Queue Cancelled', `Token ${data.token} has been cancelled.`, 'secondary');
+    setTimeout(() => location.reload(), 1500);
   });
 
   socket.on('service_completed', (data) => {
-    const entryId = myTokens[data.token];
-    if (!entryId) return;
-
-    const alertBox = document.getElementById('live-alert');
-    if (alertBox) {
-      alertBox.innerHTML = `
-        <div class="alert alert-info mb-4">
-          Token <strong>${data.token}</strong> (${data.service_name}) is complete. Refreshing...
-        </div>
-      `;
+    showToast('Service Completed', `${data.service_name} (${data.token}) is complete.`, 'info');
+    if (data.needs_feedback) {
+      setTimeout(() => {
+        const modal = document.getElementById(`feedbackModal-${data.entry_id}`);
+        if (modal) new bootstrap.Modal(modal).show();
+      }, 800);
     }
-
-    setTimeout(() => window.location.reload(), 1500);
+    setTimeout(() => location.reload(), 2500);
   });
+
+  socket.on('queue_missed', (data) => {
+    showToast('Missed', `Token ${data.token} was marked as missed.`, 'danger');
+    setTimeout(() => location.reload(), 2000);
+  });
+
+  socket.on('next_service_activated', (data) => {
+    showToast('Next Service', `Your ${data.service_name} queue is now active. Token: ${data.token}`, 'primary');
+    setTimeout(() => location.reload(), 1500);
+  });
+
+  {% if feedback_pending %}
+  new bootstrap.Modal(document.getElementById('feedbackModal-{{ feedback_pending[0].id }}')).show();
+  {% endif %}
 </script>
 {% endblock %}

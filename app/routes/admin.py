@@ -8,11 +8,13 @@ import io
 
 from app.extensions import db
 from app.utils.decorators import role_required
-from app.utils.queue_logic import recalculate_all_service_durations
+from app.utils.queue_logic import recalculate_all_service_durations, ACTIVE_STATUSES
 from app.models.counter import Counter
 from app.models.user import User
 from app.models.service import Service
 from app.models.queue_entry import QueueEntry
+from app.models.feedback import Feedback
+from app.models.audit_log import TokenResetLog
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -92,13 +94,24 @@ def dashboard():
 
     staff_form = StaffForm()
 
+    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(20).all()
+
+    active_queue_count = QueueEntry.query.filter(
+        QueueEntry.status.in_(ACTIVE_STATUSES)
+    ).count()
+    reset_logs = TokenResetLog.query.order_by(TokenResetLog.reset_at.desc()).limit(10).all()
+
     return render_template(
         'admin/dashboard.html',
+        active_page='dashboard',
         counters=counters,
         staff_members=staff_members,
         services=services,
         stats=stats,
-        staff_form=staff_form
+        staff_form=staff_form,
+        feedbacks=feedbacks,
+        active_queue_count=active_queue_count,
+        reset_logs=reset_logs,
     )
 
 
@@ -292,6 +305,7 @@ def analytics():
 
     return render_template(
         'admin/analytics.html',
+        active_page='analytics',
         days=days,
         daily_labels=daily_labels, daily_values=daily_values,
         hourly_labels=hourly_labels, hourly_values=hourly_values,
@@ -309,4 +323,43 @@ def analytics():
 def recalculate_durations():
     recalculate_all_service_durations()
     flash('Service durations recalculated from historical data.', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/reset-token-counters', methods=['POST'])
+@login_required
+@role_required('admin')
+def reset_token_counters():
+    active_count = QueueEntry.query.filter(
+        QueueEntry.status.in_(ACTIVE_STATUSES)
+    ).count()
+
+    if active_count > 0:
+        flash(
+            f'Cannot reset token counters: {active_count} queue '
+            f'entr{"y is" if active_count == 1 else "ies are"} still '
+            f'Waiting, Called, or Serving. Clear the active queue first.',
+            'danger'
+        )
+        return redirect(url_for('admin.dashboard'))
+
+    services = Service.query.with_for_update().all()
+    for service in services:
+        service.daily_token_counter = 0
+        service.counter_reset_date = None
+
+    log = TokenResetLog(
+        admin_id=current_user.id,
+        admin_name=current_user.name,
+        reset_at=datetime.utcnow(),
+        counters_reset=len(services)
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    flash(
+        f'Token counters reset for {len(services)} service(s). '
+        f'Next token for each starts from 1.',
+        'success'
+    )
     return redirect(url_for('admin.dashboard'))

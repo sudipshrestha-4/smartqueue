@@ -1,0 +1,103 @@
+{% extends base_template %}
+{% block title %}Edit Profile - SmartQueue{% endblock %}
+{% block page_title %}Edit Profile{% endblock %}
+{% block page_subtitle %}Update your personal information and profile photo{% endblock %}
+
+{% block portal_content %}
+<div class="profile-layout">
+  <div class="row g-4">
+
+    <div class="col-lg-3">
+      <div class="profile-nav-card">
+        {% include 'auth/_profile_nav.html' %}
+      </div>
+    </div>
+
+    <div class="col-lg-9">
+      <div class="profile-form-card">
+        <div class="profile-form-card-header">
+          <i class="bi bi-pencil-square"></i>
+          <div>
+            <h5>Edit Personal Information</h5>
+            <p>Keep your account details up to date</p>
+          </div>
+        </div>
+
+        <div class="profile-form-card-body">
+          <!-- Current photo preview -->
+          <div class="profile-photo-upload">
+            <div class="profile-photo-preview">
+              {% if user.profile_photo %}
+                <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_photo) }}"
+                     alt="{{ user.name }}" id="photoPreview">
+              {% else %}
+                <div class="profile-photo-placeholder" id="photoPreview">
+                  {{ user.name[0]|upper }}
+                </div>
+              {% endif %}
+            </div>
+            <div class="profile-photo-upload-info">
+              <h6>Profile Photo</h6>
+              <p>PNG, JPG, JPEG or WEBP. Recommended 200×200 px.</p>
+            </div>
+          </div>
+
+          <form method="POST" enctype="multipart/form-data" class="profile-form">
+            {{ form.hidden_tag() }}
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="profile-form-label">{{ form.name.label.text }}</label>
+                {{ form.name(class="form-control profile-form-input", placeholder="Your full name") }}
+              </div>
+              <div class="col-md-6">
+                <label class="profile-form-label">{{ form.email.label.text }}</label>
+                {{ form.email(class="form-control profile-form-input", placeholder="email@example.com") }}
+              </div>
+              <div class="col-md-6">
+                <label class="profile-form-label">{{ form.phone.label.text }}</label>
+                {{ form.phone(class="form-control profile-form-input", maxlength="10", placeholder="10-digit phone") }}
+              </div>
+              <div class="col-md-6">
+                <label class="profile-form-label">Upload New Photo</label>
+                <input type="file" name="profile_photo" class="form-control profile-form-input"
+                       accept="image/png,image/jpeg,image/webp" id="photoInput">
+              </div>
+            </div>
+
+            <div class="profile-form-actions">
+              {{ form.submit(class="btn btn-primary") }}
+              <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+  document.getElementById('photoInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('photoPreview');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (preview.tagName === 'IMG') {
+        preview.src = ev.target.result;
+      } else {
+        const img = document.createElement('img');
+        img.id = 'photoPreview';
+        img.src = ev.target.result;
+        img.alt = 'Preview';
+        preview.replaceWith(img);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+{% endblock %}

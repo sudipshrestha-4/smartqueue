@@ -6,7 +6,7 @@ from app.models.counter import Counter
 from app.models.queue_entry import QueueEntry
 from app.models.service import Service
 from app.models.user import User
-from app.utils.queue_logic import calculate_deterministic_estimate
+from app.utils.queue_logic import calculate_deterministic_estimate, create_queue_entry
 from seed_data import seed_base_data
 from werkzeug.security import generate_password_hash
 
@@ -72,6 +72,29 @@ class SeedDataTests(unittest.TestCase):
         estimate = calculate_deterministic_estimate(entry3)
 
         self.assertEqual(estimate, 15.0)
+
+    def test_create_queue_entry_allows_multiple_tokens_for_same_customer(self):
+        service = Service(name='Test Service', avg_service_duration=15)
+        db.session.add(service)
+
+        customer = User(
+            name='Test Customer',
+            email='multi@test.com',
+            phone='9800000002',
+            password_hash=generate_password_hash('customer123'),
+            role='customer',
+        )
+        db.session.add(customer)
+        db.session.commit()
+
+        first_entry = create_queue_entry(customer.id, service.id, 'normal')
+        second_entry = create_queue_entry(customer.id, service.id, 'normal')
+
+        self.assertIsNotNone(first_entry)
+        self.assertIsNotNone(second_entry)
+        self.assertNotEqual(first_entry.token_number, second_entry.token_number)
+        self.assertEqual(first_entry.customer_id, customer.id)
+        self.assertEqual(second_entry.customer_id, customer.id)
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
@@ -42,24 +42,44 @@
 
         <div class="collapse navbar-collapse" id="navbar">
 
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
 
                 <li class="nav-item">
-    <a class="nav-link" href="{{ url_for('main.display') }}" target="_blank">
-        Public Display
-    </a>
-</li>
+                    <a class="nav-link" href="{{ url_for('main.index') }}#features">Features</a>
+                </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.index') }}">
-                        Home
+                    <a class="nav-link" href="{{ url_for('main.index') }}#how-it-works">How It Works</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.display') }}" target="_blank">
+                        <i class="bi bi-display"></i> Public Display
                     </a>
                 </li>
 
                 {% if current_user.is_authenticated %}
 
+                    {% if current_user.role == 'admin' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+                    </li>
+                    {% elif current_user.role == 'staff' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('staff.dashboard') }}">Dashboard</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('customer.dashboard') }}">Dashboard</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.profile') }}">Profile</a>
+                    </li>
+
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">
                             Logout
                         </a>
                     </li>
@@ -67,15 +87,12 @@
                 {% else %}
 
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">
-                            Login
-                        </a>
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
                     </li>
 
-                    <li class="nav-item">
-                        <a class="btn btn-light ms-2"
-                           href="{{ url_for('auth.register') }}">
-                            Register
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-light btn-sm" href="{{ url_for('auth.register') }}">
+                            Get Started
                         </a>
                     </li>
 

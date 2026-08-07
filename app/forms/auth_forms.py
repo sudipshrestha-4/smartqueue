@@ -84,3 +84,41 @@ class StaffForm(FlaskForm):
     )
 
     submit = SubmitField('Create Staff Account')
+
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Send Reset Link')
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), validate_strong_password])
+    confirm_password = PasswordField(
+        'Confirm New Password',
+        validators=[DataRequired(), EqualTo('password', message='Passwords must match.')]
+    )
+    submit = SubmitField('Reset Password')
+
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField('Current Password', validators=[DataRequired()])
+    new_password = PasswordField('New Password', validators=[DataRequired(), validate_strong_password])
+    confirm_password = PasswordField(
+        'Confirm New Password',
+        validators=[DataRequired(), EqualTo('new_password', message='Passwords must match.')]
+    )
+    submit = SubmitField('Change Password')
+
+
+class EditProfileForm(FlaskForm):
+    name = StringField('Full Name', validators=[DataRequired(), Length(min=2, max=100)])
+    email = StringField('Email', validators=[
+        DataRequired(),
+        Email(message='Enter a valid email address.'),
+        validate_real_email
+    ])
+    phone = StringField('Phone Number', validators=[
+        DataRequired(),
+        Regexp(r'^\d{10}$', message='Phone number must be exactly 10 digits (numbers only).')
+    ])
+    submit = SubmitField('Save Changes')

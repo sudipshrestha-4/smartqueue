@@ -28,7 +28,10 @@
       </div>
       {{ form.submit(class="btn btn-primary") }}
     </form>
-    <p class="mt-3">No account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
+    <p class="mt-3">
+      <a href="{{ url_for('auth.forgot_password') }}">Forgot Password?</a>
+    </p>
+    <p>No account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
   </div>
 </div>
 {% endblock %}

@@ -13,6 +13,10 @@ class Service(db.Model):
 
     is_active = db.Column(db.Boolean, default=True)
 
+    # Per-service daily token counter (resets automatically each business day)
+    daily_token_counter = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    counter_reset_date = db.Column(db.Date, nullable=True)
+
     queue_entries = db.relationship('QueueEntry', backref='service', lazy='dynamic')
 
     def __repr__(self):

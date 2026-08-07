@@ -1,35 +1,167 @@
-{% extends "base.html" %}
-{% block title %}Your Token - SmartQueue{% endblock %}
-{% block content %}
-<div class="text-center">
-  <h2>Your Token</h2>
-  <div class="display-1 fw-bold my-4">{{ entry.token_number }}</div>
+{% extends "customer/base.html" %}
+{% block title %}Track {{ entry.token_number }} - SmartQueue{% endblock %}
+{% block page_title %}Live Tracking{% endblock %}
+{% block page_subtitle %}Token {{ entry.token_number }} — {{ entry.service.name }}{% endblock %}
 
-  <table class="table table-bordered w-50 mx-auto text-start">
-    <tr>
-      <th>Service</th>
-      <td>{{ entry.service.name }}</td>
-    </tr>
-    <tr>
-      <th>Priority</th>
-      <td>{{ entry.priority_type|capitalize }}</td>
-    </tr>
-    <tr>
-      <th>Status</th>
-      <td>{{ entry.status|capitalize }}</td>
-    </tr>
-    <tr>
-      <th>Estimated Wait</th>
-      <td>
-        {% if entry.deterministic_estimate %}
-          {{ entry.deterministic_estimate }} min
-        {% else %}
-          Calculating...
-        {% endif %}
-      </td>
-    </tr>
-  </table>
+{% block topbar_actions %}
+<a href="{{ url_for('customer.dashboard') }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-arrow-left"></i> Dashboard
+</a>
+{% endblock %}
 
-  <a href="{{ url_for('customer.dashboard') }}" class="btn btn-outline-primary mt-3">Back to Dashboard</a>
+{% block customer_content %}
+{% set status_label, status_color = get_status_display(entry.status) %}
+
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer" style="z-index: 1100;"></div>
+
+<div class="token-detail-hero">
+  <div class="service-label">{{ entry.service.name }}</div>
+  <div class="token-big">{{ entry.token_number }}</div>
+  <span class="badge bg-{{ status_color }}" id="status-badge">{{ status_label }}</span>
 </div>
+
+<div class="detail-grid">
+  <div class="detail-item">
+    <div class="detail-label">Queue Position</div>
+    <div class="detail-value" id="track-position">
+      {% if entry.status in ('called', 'in_service') %}NOW SERVING
+      {% else %}{{ track_data.get('position', '—') }}{% endif %}
+    </div>
+  </div>
+  <div class="detail-item">
+    <div class="detail-label">Customers Ahead</div>
+    <div class="detail-value" id="track-ahead">{{ track_data.get('customers_ahead', '—') }}</div>
+  </div>
+  <div class="detail-item">
+    <div class="detail-label">Assigned Counter</div>
+    <div class="detail-value" id="track-counter">
+      {% if track_data.get('counter') %}#{{ track_data.counter }}{% else %}—{% endif %}
+    </div>
+  </div>
+  <div class="detail-item">
+    <div class="detail-label">Est. Wait</div>
+    <div class="detail-value" id="track-estimate">
+      {% if track_data.get('estimate') is not none %}{{ track_data.estimate }} min{% else %}—{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="section-card mb-4">
+  <div class="section-card-body padded">
+    <div class="d-flex justify-content-between small text-muted mb-2">
+      <span>Queue Progress</span>
+      <span id="track-progress-label">{{ track_data.get('progress', 0) }}%</span>
+    </div>
+    <div class="progress queue-progress" style="height: 10px;">
+      <div class="progress-bar bg-indigo" id="track-progress-bar"
+           style="width: {{ track_data.get('progress', 0) }}%;"></div>
+    </div>
+  </div>
+</div>
+
+{% if entry.status == 'waiting' %}
+<div class="text-center mb-4">
+  <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+    <i class="bi bi-x-circle"></i> Cancel Token
+  </button>
+</div>
+<div class="modal fade" id="cancelModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cancel Token?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Cancel token <strong>{{ entry.token_number }}</strong>? This cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Token</button>
+        <form method="POST" action="{{ url_for('customer.cancel_token', entry_id=entry.id) }}">
+          <button type="submit" class="btn btn-danger">Yes, Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if qr_code_base64 %}
+<div class="section-card">
+  <div class="section-card-header">
+    <div class="section-card-header-left">
+      <i class="bi bi-qr-code"></i>
+      <h5>QR Code</h5>
+    </div>
+  </div>
+  <div class="section-card-body padded text-center">
+    <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code" style="max-width: 180px; border-radius: 8px;">
+    <p class="text-muted small mt-3 mb-0">Scan to open this tracking page on your device.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+  const socket = io();
+  const entryId = {{ entry.id }};
+
+  function showToast(title, body, type = 'primary') {
+    const container = document.getElementById('toastContainer');
+    const id = 'toast-' + Date.now();
+    container.insertAdjacentHTML('beforeend', `
+      <div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert">
+        <div class="d-flex">
+          <div class="toast-body"><strong>${title}</strong><br>${body}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      </div>`);
+    new bootstrap.Toast(document.getElementById(id), { delay: 5000 }).show();
+  }
+
+  function updateUI(data) {
+    if (data.status === 'called' || data.status === 'in_service') {
+      document.getElementById('track-position').textContent = 'NOW SERVING';
+    } else if (data.position) {
+      document.getElementById('track-position').textContent = data.position;
+    }
+    if (data.customers_ahead !== undefined)
+      document.getElementById('track-ahead').textContent = data.customers_ahead;
+    if (data.counter)
+      document.getElementById('track-counter').textContent = '#' + data.counter;
+    if (data.estimate !== undefined)
+      document.getElementById('track-estimate').textContent = data.estimate + ' min';
+    if (data.status_label) {
+      const badge = document.getElementById('status-badge');
+      badge.textContent = data.status_label;
+      badge.className = 'badge bg-' + (data.status_color || 'secondary');
+    }
+    if (data.progress !== undefined) {
+      document.getElementById('track-progress-bar').style.width = data.progress + '%';
+      document.getElementById('track-progress-label').textContent = data.progress + '%';
+    }
+  }
+
+  socket.on('position_update', (data) => {
+    if (data.entry_id !== entryId) return;
+    updateUI(data);
+    if (data.customers_ahead === 2) showToast('Almost there!', 'Only 2 customers ahead.', 'warning');
+    if (data.position === 1) showToast('You\'re next!', 'Get ready.', 'success');
+  });
+
+  socket.on('customer_called', (data) => {
+    if (data.entry_id !== entryId && data.token !== '{{ entry.token_number }}') return;
+    updateUI({ ...data, status: 'called', status_label: 'Called', status_color: 'warning', customers_ahead: 0, progress: 100 });
+    showToast('Your Turn!', 'Proceed to Counter ' + data.counter, 'success');
+  });
+
+  socket.on('queue_cancelled', (data) => {
+    if (data.entry_id === entryId) setTimeout(() => location.href = '{{ url_for("customer.dashboard") }}', 1500);
+  });
+
+  socket.on('service_completed', () => setTimeout(() => location.href = '{{ url_for("customer.dashboard") }}', 2000));
+  socket.on('queue_missed', () => setTimeout(() => location.href = '{{ url_for("customer.dashboard") }}', 2000));
+</script>
 {% endblock %}

@@ -1,28 +1,24 @@
-import random
-import string
-from datetime import date
-from app.extensions import db
-from app.models.queue_entry import QueueEntry
+from datetime import datetime, timedelta
+
+# Nepal Standard Time (UTC+5:45) — used for daily counter reset boundaries
+NPT_OFFSET = timedelta(hours=5, minutes=45)
 
 
-def generate_token_number(prefix='A'):
+def get_business_date():
+    """Return today's date in Nepal Standard Time."""
+    return (datetime.utcnow() + NPT_OFFSET).date()
+
+
+def generate_token_number(service, prefix='N'):
     """
-    Generates a daily-sequential token like 'A-001', 'A-002', ...
-    Resets implicitly each day since it counts today's entries only.
+    Increment the service's daily counter and return the next token number.
+    Automatically resets the counter to 1 when the business date changes.
+    Token format: {prefix}-{counter:03d}  e.g. N-001, P-002, E-003
     """
-    today = date.today()
-    today_count = QueueEntry.query.filter(
-        db.func.date(QueueEntry.arrival_time) == today
-    ).count()
+    today = get_business_date()
+    if service.counter_reset_date != today:
+        service.daily_token_counter = 0
+        service.counter_reset_date = today
 
-    next_number = today_count + 1
-    candidate = f"{prefix}-{next_number:03d}"
-
-    # today_count can undercount if old/leftover rows already used this
-    # exact token string - keep bumping the number until we find one
-    # that's actually free in the database.
-    while QueueEntry.query.filter_by(token_number=candidate).first() is not None:
-        next_number += 1
-        candidate = f"{prefix}-{next_number:03d}"
-
-    return candidate  # e.g. A-001, A-002 ... A-999
+    service.daily_token_counter += 1
+    return f"{prefix}-{service.daily_token_counter:03d}"

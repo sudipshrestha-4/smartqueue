@@ -1,12 +1,39 @@
+from datetime import date, datetime
+
 from flask import Blueprint, render_template
+from app.extensions import db
 from app.models.counter import Counter
+from app.models.service import Service
+from app.models.queue_entry import QueueEntry
 from app.utils.queue_logic import get_ordered_queue
 
 main_bp = Blueprint("main", __name__)
 
+
 @main_bp.route("/")
 def index():
-    return render_template("index.html")
+    today = date.today()
+    start_dt = datetime.combine(today, datetime.min.time())
+
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    waiting_today = QueueEntry.query.filter(
+        QueueEntry.arrival_time >= start_dt,
+        QueueEntry.status == 'waiting'
+    ).count()
+    completed_today = QueueEntry.query.filter(
+        QueueEntry.arrival_time >= start_dt,
+        QueueEntry.status == 'completed'
+    ).count()
+    active_counters = Counter.query.filter_by(status='active').count()
+
+    stats = {
+        'services_count': len(services),
+        'waiting_today': waiting_today,
+        'completed_today': completed_today,
+        'active_counters': active_counters,
+    }
+
+    return render_template("index.html", services=services, stats=stats)
 
 
 @main_bp.route("/display")

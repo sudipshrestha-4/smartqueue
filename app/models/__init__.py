@@ -3,3 +3,6 @@ from app.models.service import Service
 from app.models.counter import Counter
 from app.models.queue_entry import QueueEntry
 from app.models.analytics import AnalyticsLog
+from app.models.feedback import Feedback
+from app.models.pending_service import PendingService
+from app.models.audit_log import TokenResetLog

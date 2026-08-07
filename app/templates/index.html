@@ -1,334 +1,360 @@
 {% extends "base.html" %}
 
 {% block title %}SmartQueue | Smart Bank Queue Management{% endblock %}
-
+{% block body_class %}home-page{% endblock %}
 {% block main_class %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+{% endblock %}
 
 {% block content %}
 
-<!-- HERO SECTION -->
-<section class="hero bg-white">
-    <div class="container">
+<!-- ═══ HERO ═══ -->
+<section class="home-hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="home-hero-badge">
+          <span class="live-dot"></span>
+          Smart Banking Queue System
+        </div>
+        <h1>
+          Skip the Queue.<br>
+          <span class="highlight">Bank Smarter.</span>
+        </h1>
+        <p class="home-hero-lead">
+          Join queues digitally, track your position in real time, and get
+          intelligent wait-time predictions — all from your phone or browser.
+        </p>
 
-        <div class="row align-items-center">
-
-            <div class="col-lg-6">
-
-                <h1 class="display-4 fw-bold mb-4">
-                    Skip the Queue.<br>
-                    Bank Smarter.
-                </h1>
-
-                <p class="lead mb-4">
-                    SmartQueue lets customers join queues digitally, track their
-                    position in real time, receive notifications, and reduce
-                    waiting time using intelligent prediction.
-                </p>
-
-                {% if not current_user.is_authenticated %}
-
-                    <a href="{{ url_for('auth.register') }}"
-                       class="btn btn-primary btn-lg me-3">
-
-                        <i class="bi bi-person-plus-fill"></i>
-
-                        Get Started
-
-                    </a>
-
-                    <a href="{{ url_for('auth.login') }}"
-                       class="btn btn-outline-primary btn-lg">
-
-                        Login
-
-                    </a>
-
-                {% else %}
-
-                    <a href="#features"
-                       class="btn btn-primary btn-lg">
-
-                        Explore Features
-
-                    </a>
-
-                {% endif %}
-
-            </div>
-
-            <div class="col-lg-6 text-center">
-
-                <img
-                    src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?w=900"
-                    class="img-fluid rounded-4 shadow-lg"
-                    alt="Bank Queue">
-
-            </div>
-
+        <div class="home-hero-actions">
+          {% if current_user.is_authenticated %}
+            {% if current_user.role == 'admin' %}
+              <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">
+                <i class="bi bi-speedometer2 me-1"></i> Admin Dashboard
+              </a>
+            {% elif current_user.role == 'staff' %}
+              <a href="{{ url_for('staff.dashboard') }}" class="btn btn-primary">
+                <i class="bi bi-headset me-1"></i> Staff Dashboard
+              </a>
+            {% else %}
+              <a href="{{ url_for('customer.dashboard') }}" class="btn btn-primary">
+                <i class="bi bi-ticket-perforated me-1"></i> My Dashboard
+              </a>
+            {% endif %}
+            <a href="#features" class="btn btn-outline-light">
+              <i class="bi bi-grid me-1"></i> Explore Features
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+              <i class="bi bi-person-plus me-1"></i> Get Started Free
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Login
+            </a>
+          {% endif %}
         </div>
 
+        <div class="home-hero-trust">
+          <div class="home-hero-trust-item">
+            <i class="bi bi-shield-check"></i> Secure &amp; Reliable
+          </div>
+          <div class="home-hero-trust-item">
+            <i class="bi bi-lightning-charge"></i> Real-Time Updates
+          </div>
+          <div class="home-hero-trust-item">
+            <i class="bi bi-phone"></i> Mobile Friendly
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="home-hero-visual">
+          <div class="home-mockup">
+            <div class="home-mockup-header">
+              <span><i class="bi bi-bank2 me-1"></i> SmartQueue Live</span>
+              <div class="status"><span class="status-dot"></span> Active</div>
+            </div>
+            <div class="home-mockup-body">
+              <div class="home-mockup-token">
+                <div class="home-mockup-token-label">Your Token</div>
+                <div class="home-mockup-token-number">N-003</div>
+                <div class="home-mockup-token-service">Deposit Service</div>
+              </div>
+              <div class="home-mockup-stats">
+                <div class="home-mockup-stat">
+                  <div class="home-mockup-stat-value">2</div>
+                  <div class="home-mockup-stat-label">Ahead of You</div>
+                </div>
+                <div class="home-mockup-stat">
+                  <div class="home-mockup-stat-value">~8 min</div>
+                  <div class="home-mockup-stat-label">Est. Wait</div>
+                </div>
+              </div>
+              <div class="home-mockup-progress">
+                <div class="home-mockup-progress-bar"></div>
+              </div>
+              <div class="home-mockup-progress-label">65% through the queue</div>
+            </div>
+          </div>
+          <div class="home-mockup-float top-right">
+            <i class="bi bi-bell-fill"></i> Token Called!
+          </div>
+          <div class="home-mockup-float bottom-left">
+            <i class="bi bi-graph-up"></i> AI Prediction
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- FEATURES -->
-
-<section id="features" class="py-5">
-
-<div class="container">
-
-<h2 class="text-center fw-bold mb-5">
-
-Why SmartQueue?
-
-</h2>
-
-<div class="row g-4">
-
-<div class="col-md-4">
-
-<div class="card feature-card h-100 p-4 text-center">
-
-<i class="bi bi-clock-history display-4 text-primary mb-3"></i>
-
-<h4>Real-Time Tracking</h4>
-
-<p>
-
-Track your queue position instantly without refreshing the page.
-
-</p>
-
-</div>
-
-</div>
-
-<div class="col-md-4">
-
-<div class="card feature-card h-100 p-4 text-center">
-
-<i class="bi bi-cpu display-4 text-success mb-3"></i>
-
-<h4>AI Wait Prediction</h4>
-
-<p>
-
-Know your estimated waiting time before reaching the counter.
-
-</p>
-
-</div>
-
-</div>
-
-<div class="col-md-4">
-
-<div class="card feature-card h-100 p-4 text-center">
-
-<i class="bi bi-bell-fill display-4 text-danger mb-3"></i>
-
-<h4>Instant Notifications</h4>
-
-<p>
-
-Receive live notifications when your turn arrives.
-
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
+<!-- ═══ LIVE STATS STRIP ═══ -->
+<section class="home-stats-strip">
+  <div class="container">
+    <div class="home-stats-strip-inner">
+      <div class="home-stat-item">
+        <div class="value text-primary">{{ stats.services_count }}</div>
+        <div class="label">Active Services</div>
+      </div>
+      <div class="home-stat-item">
+        <div class="value">{{ stats.waiting_today }}</div>
+        <div class="label">Waiting Today</div>
+      </div>
+      <div class="home-stat-item">
+        <div class="value text-success">{{ stats.completed_today }}</div>
+        <div class="label">Served Today</div>
+      </div>
+      <div class="home-stat-item">
+        <div class="value text-warning">{{ stats.active_counters }}</div>
+        <div class="label">Open Counters</div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- HOW IT WORKS -->
+<!-- ═══ FEATURES ═══ -->
+<section id="features" class="home-section">
+  <div class="container">
+    <div class="home-section-header">
+      <span class="home-section-tag">Features</span>
+      <h2>Why SmartQueue?</h2>
+      <p>A complete queue management platform built for modern banking operations.</p>
+    </div>
 
-<section class="bg-light py-5">
-
-<div class="container">
-
-<h2 class="text-center fw-bold mb-5">
-
-How SmartQueue Works
-
-</h2>
-
-<div class="row text-center">
-
-<div class="col-md-3">
-
-<div class="p-3">
-
-<div class="display-5 text-primary mb-3">
-
-1️⃣
-
-</div>
-
-<h5>Register</h5>
-
-<p>Create your account securely.</p>
-
-</div>
-
-</div>
-
-<div class="col-md-3">
-
-<div class="p-3">
-
-<div class="display-5 text-success mb-3">
-
-2️⃣
-
-</div>
-
-<h5>Choose Service</h5>
-
-<p>Select the banking service you need.</p>
-
-</div>
-
-</div>
-
-<div class="col-md-3">
-
-<div class="p-3">
-
-<div class="display-5 text-warning mb-3">
-
-3️⃣
-
-</div>
-
-<h5>Track Queue</h5>
-
-<p>Watch your position update live.</p>
-
-</div>
-
-</div>
-
-<div class="col-md-3">
-
-<div class="p-3">
-
-<div class="display-5 text-danger mb-3">
-
-4️⃣
-
-</div>
-
-<h5>Get Served</h5>
-
-<p>Receive notification when your token is called.</p>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon blue"><i class="bi bi-clock-history"></i></div>
+          <h4>Real-Time Tracking</h4>
+          <p>Track your queue position instantly with live updates — no page refresh needed.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon green"><i class="bi bi-cpu"></i></div>
+          <h4>Smart Wait Prediction</h4>
+          <p>Get accurate estimated wait times based on queue length and service duration data.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon purple"><i class="bi bi-bell-fill"></i></div>
+          <h4>Instant Notifications</h4>
+          <p>Receive live alerts the moment your token is called to the counter.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon orange"><i class="bi bi-people"></i></div>
+          <h4>Priority Queuing</h4>
+          <p>Support for elderly, disabled, pregnant, and emergency priority customers.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon teal"><i class="bi bi-display"></i></div>
+          <h4>Public Display Board</h4>
+          <p>Lobby screens show now-serving tokens and next-up customers per counter.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-feature-card">
+          <div class="home-feature-icon red"><i class="bi bi-bar-chart-line"></i></div>
+          <h4>Analytics Dashboard</h4>
+          <p>Admins get full reports on wait times, no-shows, and service performance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- STATS -->
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="how-it-works" class="home-section home-section-alt">
+  <div class="container">
+    <div class="home-section-header">
+      <span class="home-section-tag">Process</span>
+      <h2>How SmartQueue Works</h2>
+      <p>Four simple steps from registration to being served at the counter.</p>
+    </div>
 
-<section class="py-5">
-
-<div class="container">
-
-<div class="row text-center">
-
-<div class="col-md-3">
-
-<h2 class="fw-bold text-primary">
-
-24/7
-
-</h2>
-
-<p>Online Queue Access</p>
-
-</div>
-
-<div class="col-md-3">
-
-<h2 class="fw-bold text-success">
-
-Real-Time
-
-</h2>
-
-<p>Queue Updates</p>
-
-</div>
-
-<div class="col-md-3">
-
-<h2 class="fw-bold text-danger">
-
-AI
-
-</h2>
-
-<p>Wait Prediction</p>
-
-</div>
-
-<div class="col-md-3">
-
-<h2 class="fw-bold text-warning">
-
-100%
-
-</h2>
-
-<p>Digital Experience</p>
-
-</div>
-
-</div>
-
-</div>
-
+    <div class="home-steps">
+      <div class="home-step">
+        <div class="home-step-number">1</div>
+        <h5><i class="bi bi-person-plus home-step-icon"></i> Register</h5>
+        <p>Create your free account in seconds with email and phone.</p>
+      </div>
+      <div class="home-step">
+        <div class="home-step-number">2</div>
+        <h5><i class="bi bi-list-check home-step-icon"></i> Choose Service</h5>
+        <p>Select the banking service you need — deposit, withdrawal, loan, etc.</p>
+      </div>
+      <div class="home-step">
+        <div class="home-step-number">3</div>
+        <h5><i class="bi bi-hourglass-split home-step-icon"></i> Track Queue</h5>
+        <p>Watch your position and estimated wait update in real time.</p>
+      </div>
+      <div class="home-step">
+        <div class="home-step-number">4</div>
+        <h5><i class="bi bi-check-circle home-step-icon"></i> Get Served</h5>
+        <p>Get notified when your token is called to the counter.</p>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- CTA -->
+<!-- ═══ PORTALS ═══ -->
+<section id="portals" class="home-section">
+  <div class="container">
+    <div class="home-section-header">
+      <span class="home-section-tag">Access</span>
+      <h2>Choose Your Portal</h2>
+      <p>SmartQueue provides dedicated dashboards for every role in the system.</p>
+    </div>
 
-<section class="bg-primary text-white py-5">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="home-portal-card customer">
+          <div class="home-portal-icon"><i class="bi bi-ticket-perforated"></i></div>
+          <h4>Customer Portal</h4>
+          <p>Join queues, track tokens, view history, and submit feedback after your visit.</p>
+          {% if current_user.is_authenticated and current_user.role == 'customer' %}
+            <a href="{{ url_for('customer.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">Customer Login</a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-portal-card staff">
+          <div class="home-portal-icon"><i class="bi bi-headset"></i></div>
+          <h4>Staff Portal</h4>
+          <p>Call next customers, manage your counter, mark completions and no-shows.</p>
+          {% if current_user.is_authenticated and current_user.role == 'staff' %}
+            <a href="{{ url_for('staff.dashboard') }}" class="btn btn-success">Go to Dashboard</a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-success">Staff Login</a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="home-portal-card admin">
+          <div class="home-portal-icon"><i class="bi bi-shield-lock"></i></div>
+          <h4>Admin Panel</h4>
+          <p>Manage counters, staff, services, analytics, and token counter resets.</p>
+          {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">Admin Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<div class="container text-center">
+<!-- ═══ SERVICES ═══ -->
+{% if services %}
+<section id="services" class="home-section home-section-alt">
+  <div class="container">
+    <div class="home-section-header">
+      <span class="home-section-tag">Services</span>
+      <h2>Available Banking Services</h2>
+      <p>Choose from our configured services when joining the queue.</p>
+    </div>
 
-<h2 class="fw-bold mb-3">
-
-Ready to Skip the Queue?
-
-</h2>
-
-<p class="mb-4">
-
-Join SmartQueue today and experience modern banking.
-
-</p>
-
-{% if not current_user.is_authenticated %}
-
-<a href="{{ url_for('auth.register') }}"
-class="btn btn-light btn-lg">
-
-Create Free Account
-
-</a>
-
+    <div class="home-services-grid">
+      {% for service in services %}
+      <div class="home-service-chip">
+        <i class="bi bi-bank"></i>
+        <div>
+          <span>{{ service.name }}</span>
+          {% if service.description %}
+            <small>{{ service.description }}</small>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 {% endif %}
 
-</div>
-
+<!-- ═══ CTA ═══ -->
+<section class="home-cta">
+  <div class="container">
+    <h2>Ready to Skip the Queue?</h2>
+    <p>Join SmartQueue today and experience a faster, smarter way to bank.</p>
+    {% if not current_user.is_authenticated %}
+      <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
+        <i class="bi bi-person-plus me-1"></i> Create Free Account
+      </a>
+    {% else %}
+      <a href="{{ url_for('main.display') }}" target="_blank" class="btn btn-light btn-lg">
+        <i class="bi bi-display me-1"></i> View Public Display
+      </a>
+    {% endif %}
+  </div>
 </section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="home-footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="home-footer-brand"><i class="bi bi-bank2"></i> SmartQueue</div>
+        <p class="home-footer-desc">
+          Intelligent queue management for modern banking. Reduce wait times,
+          improve customer experience, and streamline operations.
+        </p>
+      </div>
+      <div class="col-md-4">
+        <h6>Quick Links</h6>
+        <ul class="home-footer-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#portals">Portals</a></li>
+          <li><a href="{{ url_for('main.display') }}" target="_blank">Public Display</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6>Account</h6>
+        <ul class="home-footer-links">
+          {% if current_user.is_authenticated %}
+            <li><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
+            <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+          {% else %}
+            <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+            <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      &copy; 2026 SmartQueue. All rights reserved.
+    </div>
+  </div>
+</footer>
 
 {% endblock %}

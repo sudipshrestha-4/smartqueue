@@ -17,6 +17,11 @@ class User(UserMixin, db.Model):
 
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+    profile_photo = db.Column(db.String(255), nullable=True)
+
+    reset_token = db.Column(db.String(128), nullable=True, index=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
 
     # If role == 'staff', which counter they're assigned to (nullable otherwise)
     assigned_counter_id = db.Column(db.Integer, db.ForeignKey('counters.id'), nullable=True)

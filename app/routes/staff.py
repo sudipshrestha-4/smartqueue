@@ -6,7 +6,8 @@ from app.extensions import db, socketio
 from app.utils.decorators import role_required
 from app.utils.queue_logic import (
     broadcast_queue_updates, get_ordered_queue, get_next_customer,
-    recalculate_avg_service_duration
+    recalculate_avg_service_duration, activate_next_pending_service,
+    emit_entry_status_update,
 )
 from app.models.queue_entry import QueueEntry
 from app.models.counter import Counter
@@ -25,7 +26,13 @@ def dashboard():
         counter_id=counter.id if counter else None, status='called'
     ).first()
 
-    return render_template('staff/dashboard.html', queue=queue, counter=counter, called_entry=called_entry)
+    return render_template(
+        'staff/dashboard.html',
+        active_page='dashboard',
+        queue=queue,
+        counter=counter,
+        called_entry=called_entry
+    )
 
 
 @staff_bp.route('/call-next', methods=['POST'])
@@ -51,11 +58,17 @@ def call_next():
     db.session.commit()
 
     broadcast_queue_updates(service_id=next_entry.service_id)
+    emit_entry_status_update(next_entry)
 
     # Notify customer in real time
     socketio.emit('customer_called', {
+        'entry_id': next_entry.id,
         'token': next_entry.token_number,
-        'counter': counter.counter_number
+        'counter': counter.counter_number,
+        'status': 'called',
+        'status_label': 'Called',
+        'customers_ahead': 0,
+        'progress': 100,
     }, room=f'customer_{next_entry.customer_id}')
 
     # Notify the public counter screen
@@ -88,12 +101,14 @@ def complete_service(entry_id):
 
     broadcast_queue_updates(service_id=entry.service_id)
 
-    # Let the customer's page know their token is done so it can refresh
-    # and offer to join that same service's queue again if they want.
     socketio.emit('service_completed', {
+        'entry_id': entry.id,
         'token': entry.token_number,
-        'service_name': entry.service.name
+        'service_name': entry.service.name,
+        'needs_feedback': entry.feedback is None,
     }, room=f'customer_{entry.customer_id}')
+
+    activate_next_pending_service(entry.customer_id)
 
     socketio.emit('display_refresh', {}, room='display_room')
 
@@ -122,10 +137,13 @@ def mark_no_show(entry_id):
 
     broadcast_queue_updates(service_id=entry.service_id)
 
-    socketio.emit('service_completed', {
+    socketio.emit('queue_missed', {
+        'entry_id': entry.id,
         'token': entry.token_number,
-        'service_name': entry.service.name
+        'service_name': entry.service.name,
     }, room=f'customer_{entry.customer_id}')
+
+    activate_next_pending_service(entry.customer_id)
 
     socketio.emit('display_refresh', {}, room='display_room')
 

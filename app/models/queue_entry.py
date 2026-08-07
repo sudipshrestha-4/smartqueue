@@ -6,7 +6,7 @@ class QueueEntry(db.Model):
     __tablename__ = 'queue_entries'
 
     id = db.Column(db.Integer, primary_key=True)
-    token_number = db.Column(db.String(20), unique=True, nullable=False)
+    token_number = db.Column(db.String(20), nullable=False, index=True)
 
     customer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
@@ -15,7 +15,7 @@ class QueueEntry(db.Model):
     # 'normal' | 'elderly' | 'disabled' | 'pregnant' | 'emergency'
     priority_type = db.Column(db.String(20), default='normal')
 
-    # 'waiting' | 'called' | 'in_service' | 'completed' | 'no_show'
+    # 'waiting' | 'called' | 'in_service' | 'completed' | 'cancelled' | 'no_show'
     status = db.Column(db.String(20), default='waiting')
 
     # --- Timestamps used for Waiting Time / Service Duration formulas ---

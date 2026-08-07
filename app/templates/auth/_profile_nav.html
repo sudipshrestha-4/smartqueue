@@ -1,0 +1,22 @@
+<nav class="profile-nav">
+  <a href="{{ url_for('auth.profile') }}"
+     class="profile-nav-link {{ 'active' if request.endpoint == 'auth.profile' else '' }}">
+    <i class="bi bi-person-vcard"></i>
+    <span>Overview</span>
+  </a>
+  <a href="{{ url_for('auth.edit_profile') }}"
+     class="profile-nav-link {{ 'active' if request.endpoint == 'auth.edit_profile' else '' }}">
+    <i class="bi bi-pencil-square"></i>
+    <span>Edit Profile</span>
+  </a>
+  <a href="{{ url_for('auth.change_password') }}"
+     class="profile-nav-link {{ 'active' if request.endpoint == 'auth.change_password' else '' }}">
+    <i class="bi bi-shield-lock"></i>
+    <span>Change Password</span>
+  </a>
+  <div class="profile-nav-divider"></div>
+  <a href="{{ dashboard_url }}" class="profile-nav-link profile-nav-back">
+    <i class="bi bi-arrow-left"></i>
+    <span>Back to Dashboard</span>
+  </a>
+</nav>

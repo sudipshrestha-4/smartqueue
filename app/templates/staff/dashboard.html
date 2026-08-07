@@ -1,54 +1,153 @@
-{% extends "base.html" %}
+{% extends "staff/base.html" %}
 {% block title %}Staff Dashboard - SmartQueue{% endblock %}
-{% block content %}
-<h2>Staff Dashboard</h2>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-  {% endfor %}
-{% endwith %}
+{% block staff_content %}
 
-<p>Counter: <strong>{{ counter.counter_number if counter else 'Not Assigned' }}</strong></p>
+<!-- Counter Info Bar -->
+<div class="counter-info-bar">
+  <div class="info-item">
+    <i class="bi bi-pc-display"></i>
+    Counter: <strong>{{ counter.counter_number if counter else 'Not Assigned' }}</strong>
+  </div>
+  <div class="info-item">
+    <i class="bi bi-list-check"></i>
+    Service: <strong>{{ counter.service.name if counter and counter.service else 'Unassigned' }}</strong>
+  </div>
+  <div class="info-item">
+    <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: {{ '#198754' if counter and counter.status == 'active' else '#adb5bd' }};"></i>
+    Status: <strong>{{ counter.status|capitalize if counter else '—' }}</strong>
+  </div>
+</div>
 
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4 col-6">
+    <div class="stat-card">
+      <div class="stat-icon teal"><i class="bi bi-people"></i></div>
+      <div>
+        <div class="stat-value">{{ queue|length }}</div>
+        <div class="stat-label">Waiting in Queue</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 col-6">
+    <div class="stat-card">
+      <div class="stat-icon {{ 'success' if called_entry else 'dark' }}">
+        <i class="bi bi-{{ 'person-check' if called_entry else 'person-dash' }}"></i>
+      </div>
+      <div>
+        <div class="stat-value">{{ called_entry.token_number if called_entry else '—' }}</div>
+        <div class="stat-label">Currently Serving</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 col-6">
+    <div class="stat-card">
+      <div class="stat-icon info"><i class="bi bi-pc-display"></i></div>
+      <div>
+        <div class="stat-value">#{{ counter.counter_number if counter else '—' }}</div>
+        <div class="stat-label">Your Counter</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Action Panel -->
 {% if called_entry %}
-<div class="card mb-3 border-primary">
-  <div class="card-body">
-    <h5>Currently Serving: {{ called_entry.token_number }}</h5>
-    <form method="POST" action="{{ url_for('staff.complete_service', entry_id=called_entry.id) }}" class="d-inline">
-      <button class="btn btn-success btn-sm">Complete Service</button>
+<div class="action-panel serving">
+  <div class="serving-label">Currently Serving</div>
+  <div class="serving-token">{{ called_entry.token_number }}</div>
+  <p class="text-muted mb-3">
+    {{ called_entry.service.name }}
+    {% if called_entry.priority_type != 'normal' %}
+      · <span class="badge-priority {{ called_entry.priority_type }}">{{ called_entry.priority_type }}</span>
+    {% endif %}
+  </p>
+  <div class="action-buttons">
+    <form method="POST" action="{{ url_for('staff.complete_service', entry_id=called_entry.id) }}">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Complete Service
+      </button>
     </form>
-    <form method="POST" action="{{ url_for('staff.mark_no_show', entry_id=called_entry.id) }}" class="d-inline">
-      <button class="btn btn-warning btn-sm">Mark No-Show</button>
+    <form method="POST" action="{{ url_for('staff.mark_no_show', entry_id=called_entry.id) }}">
+      <button type="submit" class="btn btn-outline-warning">
+        <i class="bi bi-person-x"></i> Mark No-Show
+      </button>
     </form>
   </div>
 </div>
+{% elif counter and counter.service_id %}
+<div class="action-panel">
+  <div class="serving-label">Ready to Serve</div>
+  <p class="text-muted mb-3">Call the next customer from the waiting queue</p>
+  <form method="POST" action="{{ url_for('staff.call_next') }}">
+    <button type="submit" class="btn btn-primary btn-call-next" {{ 'disabled' if not queue else '' }}>
+      <i class="bi bi-megaphone"></i> Call Next Customer
+    </button>
+  </form>
+  {% if not queue %}
+  <p class="text-muted small mt-3 mb-0">No customers waiting right now.</p>
+  {% endif %}
+</div>
 {% else %}
-<form method="POST" action="{{ url_for('staff.call_next') }}">
-  <button class="btn btn-primary mb-3">Call Next Customer</button>
-</form>
+<div class="action-panel">
+  <div class="empty-state" style="padding: 20px;">
+    <i class="bi bi-exclamation-triangle"></i>
+    <p>You are not assigned to a counter or service.<br>Please contact an administrator.</p>
+  </div>
+</div>
 {% endif %}
 
-<h4>Waiting Queue ({{ queue|length }})</h4>
-<table class="table">
-  <thead><tr><th>Token</th><th>Priority</th><th>Service</th><th>Arrived</th></tr></thead>
-  <tbody>
-    {% for entry in queue %}
-    <tr>
-      <td>{{ entry.token_number }}</td>
-      <td>{{ entry.priority_type|capitalize }}</td>
-      <td>{{ entry.service.name }}</td>
-      <td>{{ entry.arrival_time.strftime('%H:%M') }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<!-- Waiting Queue -->
+<div class="section-card">
+  <div class="section-card-header">
+    <div class="section-card-header-left">
+      <i class="bi bi-hourglass-split"></i>
+      <h5>Waiting Queue</h5>
+      <span class="badge-count">{{ queue|length }}</span>
+    </div>
+  </div>
+  <div class="section-card-body">
+    {% if queue %}
+    <div class="table-responsive">
+      <table class="table admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Token</th>
+            <th>Priority</th>
+            <th>Service</th>
+            <th>Arrived</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in queue %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td><strong>{{ entry.token_number }}</strong></td>
+            <td><span class="badge-priority {{ entry.priority_type }}">{{ entry.priority_type }}</span></td>
+            <td>{{ entry.service.name }}</td>
+            <td>{{ entry.arrival_time.strftime('%H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <p>No customers in the waiting queue.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
 
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
 <script>
   const socket = io();
-
-  socket.on('queue_updated', () => {
-    location.reload();
-  });
+  socket.on('queue_updated', () => location.reload());
 </script>
 {% endblock %}

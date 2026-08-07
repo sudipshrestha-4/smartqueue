@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block body_class %}customer-page{% endblock %}
+{% block main_class %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="admin-wrapper">
+
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="admin-sidebar-brand">
+      <a href="{{ url_for('customer.dashboard') }}">
+        <i class="bi bi-ticket-perforated"></i>
+        SmartQueue
+      </a>
+      <small>Customer Portal</small>
+    </div>
+
+    <nav class="admin-nav">
+      <div class="admin-nav-label">Main</div>
+      <a href="{{ url_for('customer.dashboard') }}"
+         class="sidebar-link {{ 'active' if active_page == 'dashboard' else '' }}">
+        <i class="bi bi-speedometer2"></i> My Dashboard
+      </a>
+      <a href="{{ url_for('auth.profile') }}"
+         class="sidebar-link {{ 'active' if active_page == 'profile' else '' }}">
+        <i class="bi bi-person"></i> My Profile
+      </a>
+
+      <div class="admin-nav-label">System</div>
+      <a href="{{ url_for('main.display') }}" target="_blank" class="sidebar-link">
+        <i class="bi bi-display"></i> Public Display
+      </a>
+      <a href="{{ url_for('main.index') }}" class="sidebar-link">
+        <i class="bi bi-house"></i> Home
+      </a>
+      <a href="{{ url_for('auth.logout') }}" class="sidebar-link">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </a>
+    </nav>
+
+    <div class="admin-sidebar-footer">
+      <div class="admin-user-card">
+        <div class="admin-user-avatar">
+          {{ current_user.name[0]|upper if current_user.name else 'C' }}
+        </div>
+        <div class="admin-user-info">
+          <div class="name">{{ current_user.name }}</div>
+          <div class="role">Customer</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <div class="d-flex align-items-center gap-3">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <i class="bi bi-list"></i>
+        </button>
+        <div class="admin-topbar-left">
+          <h1>{% block page_title %}My Dashboard{% endblock %}</h1>
+          <p>{% block page_subtitle %}Track your queue position in real time{% endblock %}</p>
+        </div>
+      </div>
+      <div class="admin-topbar-right">
+        {% block topbar_actions %}{% endblock %}
+      </div>
+    </header>
+
+    <div class="admin-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block customer_content %}
+        {% block portal_content %}{% endblock %}
+      {% endblock %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const sidebar = document.getElementById('adminSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const toggle = document.getElementById('sidebarToggle');
+
+  toggle?.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+  });
+
+  overlay?.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  });
+</script>
+{% endblock %}

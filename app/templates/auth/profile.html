@@ -1,0 +1,290 @@
+{% extends base_template %}
+{% block title %}My Profile - SmartQueue{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_subtitle %}Manage your account settings and personal information{% endblock %}
+
+{% block portal_content %}
+<div class="profile-layout">
+
+  <!-- Profile Hero -->
+  <div class="profile-hero">
+    <div class="profile-hero-bg"></div>
+    <div class="profile-hero-content">
+      <div class="profile-hero-avatar">
+        {% if user.profile_photo %}
+          <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_photo) }}"
+               alt="{{ user.name }}">
+        {% else %}
+          <span>{{ user.name[0]|upper }}</span>
+        {% endif %}
+        <span class="profile-status-dot {{ 'online' if user.is_active else 'offline' }}"
+              title="{{ 'Active' if user.is_active else 'Inactive' }}"></span>
+      </div>
+      <div class="profile-hero-info">
+        <h2 class="profile-hero-name">{{ user.name }}</h2>
+        <p class="profile-hero-email"><i class="bi bi-envelope"></i> {{ user.email }}</p>
+        <div class="profile-hero-badges">
+          <span class="profile-role-badge role-{{ user.role }}">{{ role_label }}</span>
+          <span class="profile-id-badge">ID #{{ user.id }}</span>
+        </div>
+      </div>
+      <div class="profile-hero-actions">
+        <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-light btn-sm">
+          <i class="bi bi-pencil"></i> Edit
+        </a>
+        <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-shield-lock"></i> Password
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row g-3 mb-4 profile-stats-row">
+    <div class="col-md-4 col-6">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon primary"><i class="bi bi-calendar-check"></i></div>
+        <div>
+          <div class="profile-stat-value">{{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
+          <div class="profile-stat-label">Member Since</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-6">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon success"><i class="bi bi-clock-history"></i></div>
+        <div>
+          <div class="profile-stat-value">
+            {% if user.last_login %}
+              {{ user.last_login.strftime('%b %d, %Y') }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+          <div class="profile-stat-label">Last Login</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-12">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon info"><i class="bi bi-shield-check"></i></div>
+        <div>
+          <div class="profile-stat-value">{{ 'Active' if user.is_active else 'Inactive' }}</div>
+          <div class="profile-stat-label">Account Status</div>
+        </div>
+      </div>
+    </div>
+    {% if user.role == 'customer' %}
+    <div class="col-md-4 col-6">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon warning"><i class="bi bi-ticket-perforated"></i></div>
+        <div>
+          <div class="profile-stat-value">{{ total_visits }}</div>
+          <div class="profile-stat-label">Total Visits</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-6">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon success"><i class="bi bi-check-circle"></i></div>
+        <div>
+          <div class="profile-stat-value">{{ completed_visits }}</div>
+          <div class="profile-stat-label">Completed Services</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if user.role == 'staff' and counter %}
+    <div class="col-md-4 col-6">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon warning"><i class="bi bi-pc-display"></i></div>
+        <div>
+          <div class="profile-stat-value">#{{ counter.counter_number }}</div>
+          <div class="profile-stat-label">Assigned Counter</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    <!-- Sidebar Nav -->
+    <div class="col-lg-3">
+      <div class="profile-nav-card">
+        {% include 'auth/_profile_nav.html' %}
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-9">
+      <div class="row g-4">
+
+        <!-- Personal Information -->
+        <div class="col-md-6">
+          <div class="profile-info-card">
+            <div class="profile-info-card-header">
+              <i class="bi bi-person-lines-fill"></i>
+              <h5>Personal Information</h5>
+            </div>
+            <div class="profile-info-card-body">
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-person"></i> Full Name</span>
+                <span class="profile-info-value">{{ user.name }}</span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-envelope"></i> Email</span>
+                <span class="profile-info-value">{{ user.email }}</span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-telephone"></i> Phone</span>
+                <span class="profile-info-value">{{ user.phone or '—' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Details -->
+        <div class="col-md-6">
+          <div class="profile-info-card">
+            <div class="profile-info-card-header">
+              <i class="bi bi-gear"></i>
+              <h5>Account Details</h5>
+            </div>
+            <div class="profile-info-card-body">
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-badge-ad"></i> Role</span>
+                <span class="profile-info-value">
+                  <span class="profile-role-badge role-{{ user.role }}">{{ role_label }}</span>
+                </span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-hash"></i> User ID</span>
+                <span class="profile-info-value">#{{ user.id }}</span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-calendar-plus"></i> Created</span>
+                <span class="profile-info-value">
+                  {{ user.created_at.strftime('%b %d, %Y %I:%M %p') if user.created_at else '—' }}
+                </span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label"><i class="bi bi-clock"></i> Last Login</span>
+                <span class="profile-info-value">
+                  {{ user.last_login.strftime('%b %d, %Y %I:%M %p') if user.last_login else '—' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if user.role == 'staff' %}
+        <!-- Staff Work Details -->
+        <div class="col-12">
+          <div class="profile-info-card">
+            <div class="profile-info-card-header">
+              <i class="bi bi-headset"></i>
+              <h5>Work Assignment</h5>
+            </div>
+            <div class="profile-info-card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <div class="profile-detail-tile">
+                    <div class="profile-detail-tile-icon"><i class="bi bi-pc-display"></i></div>
+                    <div class="profile-detail-tile-label">Counter</div>
+                    <div class="profile-detail-tile-value">
+                      {% if counter %}#{{ counter.counter_number }}{% else %}<span class="text-muted">Not assigned</span>{% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="profile-detail-tile">
+                    <div class="profile-detail-tile-icon"><i class="bi bi-list-check"></i></div>
+                    <div class="profile-detail-tile-label">Service</div>
+                    <div class="profile-detail-tile-value">
+                      {{ counter.service.name if counter and counter.service else '—' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="profile-detail-tile">
+                    <div class="profile-detail-tile-icon"><i class="bi bi-activity"></i></div>
+                    <div class="profile-detail-tile-label">Counter Status</div>
+                    <div class="profile-detail-tile-value text-capitalize">
+                      {{ counter.status if counter else '—' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if user.role == 'admin' %}
+        <!-- Admin Privileges -->
+        <div class="col-12">
+          <div class="profile-info-card">
+            <div class="profile-info-card-header">
+              <i class="bi bi-shield-fill-check"></i>
+              <h5>Administrator Access</h5>
+            </div>
+            <div class="profile-info-card-body">
+              <div class="profile-privilege-list">
+                <div class="profile-privilege-item">
+                  <i class="bi bi-speedometer2"></i>
+                  <span>Full dashboard &amp; analytics access</span>
+                </div>
+                <div class="profile-privilege-item">
+                  <i class="bi bi-people"></i>
+                  <span>Staff &amp; counter management</span>
+                </div>
+                <div class="profile-privilege-item">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span>Token counter reset controls</span>
+                </div>
+                <div class="profile-privilege-item">
+                  <i class="bi bi-bar-chart-line"></i>
+                  <span>System reports &amp; data export</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if user.role == 'customer' %}
+        <!-- Customer Activity -->
+        <div class="col-12">
+          <div class="profile-info-card">
+            <div class="profile-info-card-header">
+              <i class="bi bi-graph-up"></i>
+              <h5>Queue Activity Summary</h5>
+            </div>
+            <div class="profile-info-card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="profile-detail-tile">
+                    <div class="profile-detail-tile-icon"><i class="bi bi-ticket-perforated"></i></div>
+                    <div class="profile-detail-tile-label">Total Queue Visits</div>
+                    <div class="profile-detail-tile-value">{{ total_visits }}</div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="profile-detail-tile">
+                    <div class="profile-detail-tile-icon"><i class="bi bi-check2-circle"></i></div>
+                    <div class="profile-detail-tile-label">Completed Services</div>
+                    <div class="profile-detail-tile-value">{{ completed_visits }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
