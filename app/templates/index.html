@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}SmartQueue | Smart Bank Queue Management{% endblock %}
+{% block title %}QueueFlow | Smart Bank Queue Management{% endblock %}
 {% block body_class %}home-page{% endblock %}
 {% block main_class %}{% endblock %}
 
@@ -73,7 +73,7 @@
         <div class="home-hero-visual">
           <div class="home-mockup">
             <div class="home-mockup-header">
-              <span><i class="bi bi-bank2 me-1"></i> SmartQueue Live</span>
+              <span><i class="bi bi-bank2 me-1"></i> QueueFlow Live</span>
               <div class="status"><span class="status-dot"></span> Active</div>
             </div>
             <div class="home-mockup-body">
@@ -102,7 +102,7 @@
             <i class="bi bi-bell-fill"></i> Token Called!
           </div>
           <div class="home-mockup-float bottom-left">
-            <i class="bi bi-graph-up"></i> AI Prediction
+            <i class="bi bi-graph-up"></i>  Prediction
           </div>
         </div>
       </div>
@@ -139,7 +139,7 @@
   <div class="container">
     <div class="home-section-header">
       <span class="home-section-tag">Features</span>
-      <h2>Why SmartQueue?</h2>
+      <h2>Why QueueFlow?</h2>
       <p>A complete queue management platform built for modern banking operations.</p>
     </div>
 
@@ -195,7 +195,7 @@
   <div class="container">
     <div class="home-section-header">
       <span class="home-section-tag">Process</span>
-      <h2>How SmartQueue Works</h2>
+      <h2>How QueueFlow Works</h2>
       <p>Four simple steps from registration to being served at the counter.</p>
     </div>
 
@@ -230,7 +230,7 @@
     <div class="home-section-header">
       <span class="home-section-tag">Access</span>
       <h2>Choose Your Portal</h2>
-      <p>SmartQueue provides dedicated dashboards for every role in the system.</p>
+      <p>QueueFlow provides dedicated dashboards for every role in the system.</p>
     </div>
 
     <div class="row g-4">
@@ -305,7 +305,7 @@
 <section class="home-cta">
   <div class="container">
     <h2>Ready to Skip the Queue?</h2>
-    <p>Join SmartQueue today and experience a faster, smarter way to bank.</p>
+    <p>Join QueueFlow today and experience a faster, smarter way to bank.</p>
     {% if not current_user.is_authenticated %}
       <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
         <i class="bi bi-person-plus me-1"></i> Create Free Account
@@ -323,7 +323,7 @@
   <div class="container">
     <div class="row g-4">
       <div class="col-md-4">
-        <div class="home-footer-brand"><i class="bi bi-bank2"></i> SmartQueue</div>
+        <div class="home-footer-brand"><i class="bi bi-bank2"></i> QueueFlow</div>
         <p class="home-footer-desc">
           Intelligent queue management for modern banking. Reduce wait times,
           improve customer experience, and streamline operations.
@@ -352,7 +352,7 @@
       </div>
     </div>
     <div class="home-footer-bottom">
-      &copy; 2026 SmartQueue. All rights reserved.
+      &copy; 2026 QueueFlow. All rights reserved.
     </div>
   </div>
 </footer>
