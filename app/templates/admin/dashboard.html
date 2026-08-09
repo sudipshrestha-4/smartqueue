@@ -185,12 +185,24 @@
                   </form>
                 </td>
                 <td>
-                  <form method="POST" action="{{ url_for('admin.remove_staff', staff_id=member.id) }}"
-                        onsubmit="return confirm('Remove {{ member.name }}\'s staff account? This cannot be undone.');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove">
-                      <i class="bi bi-trash"></i>
+                  <div class="d-flex gap-1">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            title="Change password"
+                            data-bs-toggle="modal"
+                            data-bs-target="#changeStaffPasswordModal"
+                            data-staff-id="{{ member.id }}"
+                            data-staff-name="{{ member.name }}"
+                            onclick="setStaffPasswordTarget(this)">
+                      <i class="bi bi-key"></i>
                     </button>
-                  </form>
+                    <form method="POST" action="{{ url_for('admin.remove_staff', staff_id=member.id) }}"
+                          onsubmit="return confirm('Remove {{ member.name }}\'s staff account? This cannot be undone.');">
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -471,6 +483,40 @@
   </div>
 </div>
 
+<!-- Change Staff Password Modal -->
+<div class="modal fade" id="changeStaffPasswordModal" tabindex="-1" aria-labelledby="changeStaffPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="changeStaffPasswordForm" action="#" novalidate>
+        {{ staff_password_form.hidden_tag() }}
+        <div class="modal-header">
+          <h5 class="modal-title" id="changeStaffPasswordModalLabel">
+            <i class="bi bi-key me-2"></i>Change Staff Password
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            Set a new password for <strong id="changeStaffPasswordName">staff member</strong>.
+          </p>
+          <div class="mb-3">
+            {{ staff_password_form.password.label(class="form-label") }}
+            {{ staff_password_form.password(class="form-control", placeholder="New password") }}
+          </div>
+          <div class="mb-3">
+            {{ staff_password_form.confirm_password.label(class="form-label") }}
+            {{ staff_password_form.confirm_password(class="form-control", placeholder="Confirm new password") }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          {{ staff_password_form.submit(class="btn btn-primary") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -478,5 +524,15 @@
 <script>
   const socket = io();
   socket.on('queue_updated', () => location.reload());
+
+  const staffPasswordUrlTemplate = {{ url_for('admin.change_staff_password', staff_id=0) | tojson }};
+
+  function setStaffPasswordTarget(button) {
+    const staffId = button.dataset.staffId;
+    const staffName = button.dataset.staffName;
+    document.getElementById('changeStaffPasswordForm').action =
+      staffPasswordUrlTemplate.replace('/0/', '/' + staffId + '/');
+    document.getElementById('changeStaffPasswordName').textContent = staffName;
+  }
 </script>
 {% endblock %}

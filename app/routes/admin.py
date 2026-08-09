@@ -2,7 +2,7 @@ from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
-from app.forms.auth_forms import StaffForm
+from app.forms.auth_forms import StaffForm, AdminStaffPasswordForm
 import csv
 import io
 
@@ -93,6 +93,7 @@ def dashboard():
     }
 
     staff_form = StaffForm()
+    staff_password_form = AdminStaffPasswordForm()
 
     feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(20).all()
 
@@ -109,6 +110,7 @@ def dashboard():
         services=services,
         stats=stats,
         staff_form=staff_form,
+        staff_password_form=staff_password_form,
         feedbacks=feedbacks,
         active_queue_count=active_queue_count,
         reset_logs=reset_logs,
@@ -160,6 +162,25 @@ def remove_staff(staff_id):
     db.session.delete(staff)
     db.session.commit()
     flash(f'Removed staff account for {name}.', 'info')
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/staff/<int:staff_id>/change-password', methods=['POST'])
+@login_required
+@role_required('admin')
+def change_staff_password(staff_id):
+    staff = User.query.filter_by(id=staff_id, role='staff').first_or_404()
+    form = AdminStaffPasswordForm()
+    if form.validate_on_submit():
+        staff.password_hash = generate_password_hash(form.password.data)
+        db.session.commit()
+        flash(f'Password updated for {staff.name}.', 'success')
+    else:
+        for field_name, errors in form.errors.items():
+            label = getattr(form, field_name).label.text
+            for error in errors:
+                flash(f'{label}: {error}', 'danger')
+
     return redirect(url_for('admin.dashboard'))
 
 

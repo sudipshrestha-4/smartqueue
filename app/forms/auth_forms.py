@@ -105,6 +105,15 @@ class StaffForm(FlaskForm):
             raise ValidationError('This phone number is already registered.')
 
 
+class AdminStaffPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), validate_strong_password])
+    confirm_password = PasswordField(
+        'Confirm New Password',
+        validators=[DataRequired(), EqualTo('password', message='Passwords must match.')]
+    )
+    submit = SubmitField('Update Password')
+
+
 class ForgotPasswordForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Send Reset Link')
