@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.extensions import db, socketio
@@ -119,14 +119,57 @@ def get_assigned_counter_number(entry):
     return counter.counter_number if counter else None
 
 
+def get_rolling_avg_service_duration(service_id, limit=20):
+    """
+    Rolling average service duration from the last `limit` completed entries
+    for a service (service_start_time -> service_completion_time).
+    Returns average minutes, or None when no valid historical samples exist.
+    """
+    completed = (
+        QueueEntry.query.filter(
+            QueueEntry.service_id == service_id,
+            QueueEntry.status == 'completed',
+            QueueEntry.service_completion_time.isnot(None),
+            QueueEntry.service_start_time.isnot(None),
+        )
+        .order_by(QueueEntry.service_completion_time.desc())
+        .limit(limit)
+        .all()
+    )
+
+    durations = [e.calculate_service_duration() for e in completed]
+    durations = [d for d in durations if d is not None]
+
+    if not durations:
+        return None
+
+    return round(sum(durations) / len(durations), 2)
+
+
+def get_effective_service_duration(service):
+    """
+    Per-service average used for wait estimates: rolling average from recent
+    completions when available, otherwise the service's default duration.
+    """
+    if not service:
+        return None
+
+    rolling_avg = get_rolling_avg_service_duration(service.id)
+    if rolling_avg is not None:
+        return rolling_avg
+
+    return getattr(service, 'avg_service_duration', None)
+
+
 def calculate_deterministic_estimate(entry):
     """
     Estimated Waiting Time = (Customers Ahead x Average Service Duration)
     / Number of Open Counters for this service.
-    Uses each service's avg_service_duration from historical data when available.
+    Uses a rolling average from the last 20 completed entries when available,
+    otherwise falls back to the service's default avg_service_duration.
     """
     customers_ahead = get_customers_ahead(entry)
-    avg_duration = getattr(entry.service, 'avg_service_duration', None)
+    avg_duration = get_effective_service_duration(entry.service)
 
     active_counters = Counter.query.filter_by(
         status='active',
@@ -320,33 +363,22 @@ def emit_entry_status_update(entry):
     socketio.emit('position_update', payload, room=f'customer_{entry.customer_id}')
 
 
-def recalculate_avg_service_duration(service_id, min_samples=5, lookback_days=30):
+def recalculate_avg_service_duration(service_id, limit=20):
     """
-    Recomputes a service's average service duration from completed entries.
+    Persists a service's average duration from the last `limit` completed
+    entries. Keeps the existing default when insufficient history exists.
     """
     service = Service.query.get(service_id)
     if not service:
         return None
 
-    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
-    completed = QueueEntry.query.filter(
-        QueueEntry.service_id == service_id,
-        QueueEntry.status == 'completed',
-        QueueEntry.service_completion_time.isnot(None),
-        QueueEntry.service_start_time.isnot(None),
-        QueueEntry.service_completion_time >= cutoff
-    ).all()
-
-    durations = [e.calculate_service_duration() for e in completed]
-    durations = [d for d in durations if d is not None]
-
-    if len(durations) < min_samples:
+    rolling_avg = get_rolling_avg_service_duration(service_id, limit=limit)
+    if rolling_avg is None:
         return service.avg_service_duration
 
-    new_avg = round(sum(durations) / len(durations), 2)
-    service.avg_service_duration = new_avg
+    service.avg_service_duration = rolling_avg
     db.session.commit()
-    return new_avg
+    return rolling_avg
 
 
 def recalculate_all_service_durations():

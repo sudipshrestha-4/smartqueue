@@ -5,105 +5,841 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartQueue - Now Serving</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-deep: #07111f;
+            --bg-panel: #0f1b2d;
+            --bg-card: #152238;
+            --border: rgba(148, 163, 184, 0.14);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --gold: #d4a853;
+            --gold-soft: rgba(212, 168, 83, 0.16);
+            --green: #34d399;
+            --green-glow: rgba(52, 211, 153, 0.35);
+            --amber: #fbbf24;
+            --hero-gradient: linear-gradient(135deg, #0f2744 0%, #0b1a30 48%, #12243d 100%);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
         body {
-            background: #0b1220;
-            color: #fff;
-            font-family: 'Poppins', sans-serif;
-            min-height: 100vh;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37, 99, 235, 0.18), transparent 55%),
+                radial-gradient(ellipse 50% 40% at 100% 100%, rgba(212, 168, 83, 0.08), transparent 50%),
+                var(--bg-deep);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
         }
-        .brand {
-            font-size: 1.8rem;
-            font-weight: 700;
-            padding: 1.5rem 2rem;
-            border-bottom: 2px solid #1e293b;
+
+        .display-shell {
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 0;
         }
-        .counter-card {
-            background: #131c31;
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            border: 2px solid #1e293b;
+
+        /* ── Header ── */
+        .display-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            padding: 1rem 2rem;
+            background: rgba(15, 27, 45, 0.92);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
         }
-        .counter-label {
-            font-size: 1.1rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        .now-serving-token {
-            font-size: 4rem;
+
+        .brand-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, var(--gold), #b8862e);
+            color: #07111f;
+            font-size: 1.35rem;
+            box-shadow: 0 8px 24px rgba(212, 168, 83, 0.25);
+        }
+
+        .brand-text h1 {
+            margin: 0;
+            font-size: clamp(1.25rem, 2vw, 1.75rem);
             font-weight: 800;
-            color: #22c55e;
-            margin: 0.5rem 0;
+            letter-spacing: -0.02em;
         }
+
+        .brand-text p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(52, 211, 153, 0.12);
+            border: 1px solid rgba(52, 211, 153, 0.28);
+            color: var(--green);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green-glow);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.55; transform: scale(0.92); }
+        }
+
+        .datetime-block {
+            text-align: right;
+        }
+
+        .datetime-block .clock {
+            font-size: clamp(1.4rem, 2.2vw, 2rem);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            line-height: 1.1;
+        }
+
+        .datetime-block .date {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* ── Main body ── */
+        .display-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            min-height: 0;
+        }
+
+        .display-left {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 1rem;
+            min-height: 0;
+        }
+
+        /* ── Hero: currently serving ── */
+        .hero-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            padding: clamp(1.25rem, 2.5vw, 2rem) clamp(1.5rem, 3vw, 2.5rem);
+            background: var(--hero-gradient);
+            border: 1px solid rgba(212, 168, 83, 0.22);
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .hero-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(212, 168, 83, 0.12), transparent 45%);
+            pointer-events: none;
+        }
+
+        .hero-panel.is-active {
+            animation: heroGlow 1.2s ease;
+        }
+
+        @keyframes heroGlow {
+            0% { box-shadow: 0 0 0 0 var(--green-glow), 0 24px 60px rgba(0, 0, 0, 0.35); }
+            100% { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); }
+        }
+
+        .hero-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gold);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 1.5rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-token-wrap {
+            min-width: 0;
+        }
+
+        .hero-token {
+            font-size: clamp(3.5rem, 9vw, 7rem);
+            font-weight: 800;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+            color: var(--green);
+            text-shadow: 0 0 40px var(--green-glow);
+            transition: transform 0.35s ease, color 0.35s ease;
+        }
+
+        .hero-token.is-idle {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            color: #475569;
+            text-shadow: none;
+        }
+
+        .hero-token.bump {
+            animation: tokenBump 0.55s ease;
+        }
+
+        @keyframes tokenBump {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        .hero-proceed {
+            margin-top: 0.85rem;
+            font-size: clamp(1.1rem, 2vw, 1.65rem);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .hero-proceed strong {
+            color: var(--gold);
+            font-weight: 800;
+        }
+
+        .hero-service {
+            margin-top: 0.35rem;
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .hero-counter-badge {
+            min-width: clamp(140px, 16vw, 200px);
+            padding: 1.25rem 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            background: var(--gold-soft);
+            border: 1px solid rgba(212, 168, 83, 0.35);
+        }
+
+        .hero-counter-badge .label {
+            font-size: 0.75rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .hero-counter-badge .number {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 0.25rem;
+        }
+
+        /* ── Counter grid ── */
+        .counters-section {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .counters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+            overflow: hidden;
+            align-content: start;
+        }
+
+        .counter-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 1.1rem 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .counter-card:hover {
+            border-color: rgba(148, 163, 184, 0.28);
+        }
+
+        .counter-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .now-serving-label {
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .now-serving-token {
+            font-size: clamp(1.75rem, 3vw, 2.5rem);
+            font-weight: 800;
+            color: var(--green);
+            margin: 0.15rem 0;
+            line-height: 1.1;
+        }
+
         .idle-token {
-            font-size: 2rem;
+            font-size: clamp(1.25rem, 2vw, 1.75rem);
             font-weight: 700;
             color: #475569;
-            margin: 0.5rem 0;
+            margin: 0.15rem 0;
         }
+
         .next-up {
-            font-size: 1.3rem;
-            color: #f59e0b;
+            margin-top: 0.65rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.95rem;
+            color: var(--amber);
             font-weight: 600;
         }
+
         .flash-highlight {
             animation: flash 1.2s ease;
         }
+
         @keyframes flash {
-            0% { background: #22c55e33; }
-            100% { background: transparent; }
+            0% {
+                background: rgba(52, 211, 153, 0.18);
+                border-color: rgba(52, 211, 153, 0.45);
+                box-shadow: 0 0 30px var(--green-glow);
+                transform: scale(1.02);
+            }
+            100% {
+                background: var(--bg-card);
+                border-color: var(--border);
+                box-shadow: none;
+                transform: scale(1);
+            }
+        }
+
+        /* ── Recently called ── */
+        .recent-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            overflow: hidden;
+        }
+
+        .recent-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .recent-header h2 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recent-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.65rem;
+            min-height: 0;
+        }
+
+        .recent-list::-webkit-scrollbar { width: 4px; }
+        .recent-list::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 4px; }
+
+        .recent-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.75rem 0.85rem;
+            border-radius: 14px;
+            margin-bottom: 0.45rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            animation: slideIn 0.4s ease;
+        }
+
+        .recent-item:first-child {
+            background: rgba(52, 211, 153, 0.08);
+            border-color: rgba(52, 211, 153, 0.2);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(12px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .recent-token {
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: var(--green);
+            min-width: 4.5rem;
+        }
+
+        .recent-meta {
+            min-width: 0;
+        }
+
+        .recent-meta .service {
+            font-size: 0.78rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            background: var(--gold-soft);
+            color: var(--gold);
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .recent-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 120px;
+            color: var(--muted);
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .recent-empty i {
+            font-size: 2rem;
+            opacity: 0.4;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ── Footer ticker ── */
+        .display-footer {
+            padding: 0.65rem 2rem;
+            background: rgba(15, 27, 45, 0.95);
+            border-top: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .ticker-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker {
+            display: inline-block;
+            padding-left: 100%;
+            animation: ticker 28s linear infinite;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .ticker strong { color: var(--gold); }
+
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* ── Empty state ── */
+        .empty-board {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 40vh;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .empty-board i {
+            font-size: 3rem;
+            opacity: 0.35;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Sound gate ── */
+        #sound-gate {
+            position: fixed;
+            inset: 0;
+            background: rgba(7, 17, 31, 0.94);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 1.25rem;
+            backdrop-filter: blur(8px);
+        }
+
+        #sound-gate p {
+            font-size: clamp(1.1rem, 2vw, 1.5rem);
+            text-align: center;
+            max-width: 28rem;
+            color: var(--muted);
+        }
+
+        #enable-sound-btn {
+            padding: 0.85rem 2rem;
+            font-weight: 700;
+            border-radius: 14px;
+            background: linear-gradient(145deg, var(--gold), #b8862e);
+            border: none;
+            color: #07111f;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 992px) {
+            .display-body {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+
+            html, body { overflow: auto; }
+
+            .display-shell { height: auto; min-height: 100vh; }
+
+            .hero-content {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-counter-badge {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="brand">🏦 SmartQueue - Now Serving</div>
+<div id="sound-gate">
+  <p><i class="bi bi-volume-up-fill me-2"></i>Tap to enable voice announcements for this display</p>
+  <button id="enable-sound-btn" type="button"><i class="bi bi-megaphone-fill me-2"></i>Enable Sound</button>
+</div>
 
-<div class="container-fluid py-5">
-  <div class="row g-4" id="board">
-    {% for item in board %}
-      <div class="col-md-4">
-        <div class="counter-card" id="counter-card-{{ item.counter.id }}" data-counter-number="{{ item.counter.counter_number }}">
-          <div class="counter-label">Counter {{ item.counter.counter_number }} — {{ item.counter.service.name }}</div>
+<div class="display-shell">
 
-          <div class="now-serving-label small text-muted mt-3">Now Serving</div>
-          {% if item.now_serving %}
-            <div class="now-serving-token" id="serving-{{ item.counter.id }}">{{ item.now_serving.token_number }}</div>
-          {% else %}
-            <div class="idle-token" id="serving-{{ item.counter.id }}">—</div>
-          {% endif %}
+  <!-- Header -->
+  <header class="display-header">
+    <div class="brand-block">
+      <div class="brand-icon"><i class="bi bi-bank2"></i></div>
+      <div class="brand-text">
+        <h1>SmartQueue</h1>
+        <p>Public Service Display</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="live-badge"><span class="live-dot"></span> Live</span>
+      <div class="datetime-block">
+        <div class="clock" id="live-clock">--:--</div>
+        <div class="date" id="live-date">Loading...</div>
+      </div>
+    </div>
+  </header>
 
-          <div class="next-up" id="next-{{ item.counter.id }}">
-            {% if item.next_up %}Next: {{ item.next_up.token_number }}{% else %}Next: —{% endif %}
+  <!-- Main -->
+  <main class="display-body">
+
+    {% if board %}
+    <div class="display-left">
+
+      <!-- Hero: primary focus -->
+      <section class="hero-panel" id="hero-panel">
+        <div class="hero-label"><i class="bi bi-broadcast"></i> Currently Serving</div>
+        <div class="hero-content">
+          <div class="hero-token-wrap">
+            <div class="hero-token is-idle" id="hero-token">—</div>
+            <div class="hero-proceed" id="hero-proceed">Waiting for next customer</div>
+            <div class="hero-service" id="hero-service"></div>
+          </div>
+          <div class="hero-counter-badge">
+            <div class="label">Counter</div>
+            <div class="number" id="hero-counter">—</div>
           </div>
         </div>
+      </section>
+
+      <!-- All counters -->
+      <section class="counters-section">
+        <div class="section-title"><i class="bi bi-grid-3x3-gap"></i> All Active Counters</div>
+        <div class="counters-grid" id="board">
+          {% for item in board %}
+          <div class="counter-card"
+               id="counter-card-{{ item.counter.id }}"
+               data-counter-number="{{ item.counter.counter_number }}"
+               data-service-name="{{ item.counter.service.name }}">
+            <div class="counter-label">
+              <i class="bi bi-pc-display"></i>
+              Counter {{ item.counter.counter_number }} · {{ item.counter.service.name }}
+            </div>
+            <div class="now-serving-label">Now Serving</div>
+            {% if item.now_serving %}
+              <div class="now-serving-token" id="serving-{{ item.counter.id }}">{{ item.now_serving.token_number }}</div>
+            {% else %}
+              <div class="idle-token" id="serving-{{ item.counter.id }}">—</div>
+            {% endif %}
+            <div class="next-up" id="next-{{ item.counter.id }}">
+              {% if item.next_up %}<i class="bi bi-arrow-right-short"></i> Next: {{ item.next_up.token_number }}{% else %}Next: —{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <!-- Recently called -->
+    <aside class="recent-panel">
+      <div class="recent-header">
+        <h2><i class="bi bi-clock-history"></i> Recently Called</h2>
       </div>
+      <div class="recent-list" id="recent-list">
+        <div class="recent-empty" id="recent-empty">
+          <i class="bi bi-inbox"></i>
+          <span>No calls yet today</span>
+        </div>
+      </div>
+    </aside>
+
     {% else %}
-      <div class="col-12 text-center text-muted">
-        <p class="fs-4">No active counters configured yet.</p>
+    <div class="empty-board">
+      <i class="bi bi-display"></i>
+      <p class="fs-4 mb-1">No active counters configured yet</p>
+      <p class="text-muted">Assign services to active counters in the admin panel.</p>
+    </div>
+    {% endif %}
+
+  </main>
+
+  <!-- Footer ticker -->
+  <footer class="display-footer">
+    <div class="ticker-wrap">
+      <div class="ticker">
+        <strong>Welcome to SmartQueue</strong> &nbsp;·&nbsp;
+        Please listen for your token number &nbsp;·&nbsp;
+        When called, proceed promptly to your assigned counter &nbsp;·&nbsp;
+        Thank you for your patience &nbsp;·&nbsp;
+        <strong>SmartQueue</strong> — Intelligent Queue Management
       </div>
-    {% endfor %}
-  </div>
+    </div>
+  </footer>
+
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
   const socket = io();
 
-  // Map counter_number -> DOM element, since backend events only carry counter_number
+  // ── Live clock ──
+  function updateClock() {
+    const now = new Date();
+    const clockEl = document.getElementById('live-clock');
+    const dateEl = document.getElementById('live-date');
+    if (clockEl) {
+      clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    if (dateEl) {
+      dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── Voice unlock ──
+  speechSynthesis.addEventListener('voiceschanged', () => {});
+
+  document.getElementById('enable-sound-btn').addEventListener('click', () => {
+    const warmup = new SpeechSynthesisUtterance('Sound enabled');
+    window.speechSynthesis.speak(warmup);
+    document.getElementById('sound-gate').remove();
+  });
+
+  // ── Counter card map ──
   const counterCards = {};
   document.querySelectorAll('.counter-card').forEach(card => {
     counterCards[card.dataset.counterNumber] = card;
   });
 
+  // ── Hero panel ──
+  const heroPanel = document.getElementById('hero-panel');
+  const heroToken = document.getElementById('hero-token');
+  const heroProceed = document.getElementById('hero-proceed');
+  const heroService = document.getElementById('hero-service');
+  const heroCounter = document.getElementById('hero-counter');
+
+  function updateHero(token, counter, serviceName) {
+    if (!heroToken) return;
+
+    heroToken.textContent = token;
+    heroToken.classList.remove('is-idle');
+    heroToken.classList.add('bump');
+    setTimeout(() => heroToken.classList.remove('bump'), 600);
+
+    if (heroCounter) heroCounter.textContent = counter;
+    if (heroProceed) {
+      heroProceed.innerHTML = 'Please proceed to <strong>Counter ' + counter + '</strong>';
+    }
+    if (heroService && serviceName) {
+      heroService.textContent = serviceName;
+    }
+    if (heroPanel) {
+      heroPanel.classList.remove('is-active');
+      void heroPanel.offsetWidth;
+      heroPanel.classList.add('is-active');
+    }
+  }
+
+  // Seed hero from first counter currently serving
+  (function seedHero() {
+    const serving = document.querySelector('.counter-card .now-serving-token');
+    if (!serving || !heroToken) return;
+    const card = serving.closest('.counter-card');
+    if (!card) return;
+    updateHero(
+      serving.textContent.trim(),
+      card.dataset.counterNumber,
+      card.dataset.serviceName
+    );
+  })();
+
+  // ── Recently called (client-side, no backend change) ──
+  const recentCalls = [];
+  const MAX_RECENT = 10;
+  const recentList = document.getElementById('recent-list');
+  const recentEmpty = document.getElementById('recent-empty');
+
+  function renderRecentCalls() {
+    if (!recentList) return;
+
+    if (recentCalls.length === 0) {
+      if (recentEmpty) recentEmpty.style.display = '';
+      recentList.querySelectorAll('.recent-item').forEach(el => el.remove());
+      return;
+    }
+
+    if (recentEmpty) recentEmpty.style.display = 'none';
+    recentList.querySelectorAll('.recent-item').forEach(el => el.remove());
+
+    recentCalls.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'recent-item';
+      row.innerHTML =
+        '<div class="recent-token">' + item.token + '</div>' +
+        '<div class="recent-meta"><div class="service">' + (item.serviceName || 'Service') + '</div></div>' +
+        '<div class="recent-counter"><i class="bi bi-arrow-right-circle"></i> Counter ' + item.counter + '</div>';
+      recentList.appendChild(row);
+    });
+  }
+
+  function addRecentCall(token, counter, serviceName) {
+    recentCalls.unshift({ token, counter, serviceName, time: Date.now() });
+    if (recentCalls.length > MAX_RECENT) recentCalls.pop();
+    renderRecentCalls();
+  }
+
+  // Seed recent list from counters already serving on page load
+  (function seedRecentFromBoard() {
+    document.querySelectorAll('.counter-card').forEach(card => {
+      const tokenEl = card.querySelector('.now-serving-token');
+      if (tokenEl) {
+        recentCalls.push({
+          token: tokenEl.textContent.trim(),
+          counter: card.dataset.counterNumber,
+          serviceName: card.dataset.serviceName,
+          time: Date.now()
+        });
+      }
+    });
+    if (recentCalls.length > MAX_RECENT) recentCalls.length = MAX_RECENT;
+    renderRecentCalls();
+  })();
+
+  // ── Socket: counter called ──
   socket.on('counter_called', (data) => {
-    const card = counterCards[data.counter];
+    const card = counterCards[String(data.counter)];
     if (!card) return;
 
-    const servingEl = card.querySelector(`[id^="serving-"]`);
+    const servingEl = card.querySelector('[id^="serving-"]');
     if (servingEl) {
       servingEl.textContent = data.token;
       servingEl.classList.remove('idle-token');
@@ -113,20 +849,47 @@
     card.classList.add('flash-highlight');
     setTimeout(() => card.classList.remove('flash-highlight'), 1200);
 
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(
-        `Token ${data.token.split('').join(' ')}. Please proceed to counter ${data.counter}.`
-      );
-      utterance.rate = 0.85;
-      window.speechSynthesis.speak(utterance);
-    }
+    updateHero(data.token, data.counter, card.dataset.serviceName);
+    addRecentCall(data.token, data.counter, card.dataset.serviceName);
+    announceToken(data.token, data.counter, 3);
   });
 
-  // Complete/no-show changes are simplest to reflect with a refresh,
-  // since the "next up" customer also needs to be recomputed.
   socket.on('display_refresh', () => {
     setTimeout(() => window.location.reload(), 1000);
   });
+
+  function announceToken(token, counter, timesLeft, pauseMs = 1500) {
+    if (!('speechSynthesis' in window)) return;
+    if (timesLeft <= 0) return;
+
+    if (timesLeft === 3) {
+      window.speechSynthesis.cancel();
+      if (window.__announceTimer) {
+        clearTimeout(window.__announceTimer);
+        window.__announceTimer = null;
+      }
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      'Token ' + token.split('').join(' ') + '. Please proceed to counter ' + counter + '.'
+    );
+    utterance.rate = 0.85;
+
+    window.__activeUtterances = window.__activeUtterances || [];
+    window.__activeUtterances.push(utterance);
+
+    utterance.onend = () => {
+      window.__activeUtterances = window.__activeUtterances.filter(u => u !== utterance);
+      if (timesLeft - 1 > 0) {
+        window.__announceTimer = setTimeout(
+          () => announceToken(token, counter, timesLeft - 1, pauseMs),
+          pauseMs
+        );
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
 </script>
 
 </body>

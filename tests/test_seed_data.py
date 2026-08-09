@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta
 
 from app import create_app
 from app.extensions import db
@@ -6,7 +7,11 @@ from app.models.counter import Counter
 from app.models.queue_entry import QueueEntry
 from app.models.service import Service
 from app.models.user import User
-from app.utils.queue_logic import calculate_deterministic_estimate, create_queue_entry
+from app.utils.queue_logic import (
+    calculate_deterministic_estimate,
+    create_queue_entry,
+    get_effective_service_duration,
+)
 from seed_data import seed_base_data
 from werkzeug.security import generate_password_hash
 
@@ -72,6 +77,46 @@ class SeedDataTests(unittest.TestCase):
         estimate = calculate_deterministic_estimate(entry3)
 
         self.assertEqual(estimate, 15.0)
+
+    def test_calculate_deterministic_estimate_uses_rolling_average(self):
+        service = Service(name='Rolling Test', avg_service_duration=10)
+        db.session.add(service)
+        db.session.commit()
+
+        counter = Counter(counter_number=99, status='active', service_id=service.id)
+        customer = User(
+            name='History Customer',
+            email='history@test.com',
+            phone='9800000003',
+            password_hash=generate_password_hash('customer123'),
+            role='customer',
+        )
+        db.session.add_all([counter, customer])
+        db.session.commit()
+
+        now = datetime.utcnow()
+        for idx, minutes in enumerate((5, 15, 25), start=1):
+            completed = QueueEntry(
+                token_number=f'H-{idx}',
+                customer_id=customer.id,
+                service_id=service.id,
+                status='completed',
+                service_start_time=now - timedelta(minutes=30 + idx),
+                service_completion_time=now - timedelta(minutes=30 + idx - minutes),
+            )
+            db.session.add(completed)
+
+        waiting = QueueEntry(
+            token_number='W-1',
+            customer_id=customer.id,
+            service_id=service.id,
+            status='waiting',
+        )
+        db.session.add(waiting)
+        db.session.commit()
+
+        self.assertEqual(get_effective_service_duration(service), 15.0)
+        self.assertEqual(calculate_deterministic_estimate(waiting), 0.0)
 
     def test_create_queue_entry_allows_multiple_tokens_for_same_customer(self):
         service = Service(name='Test Service', avg_service_duration=15)

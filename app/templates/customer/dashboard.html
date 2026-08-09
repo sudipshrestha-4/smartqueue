@@ -471,6 +471,39 @@
     }
   }
 
+  function announceToken(token, counter, timesLeft, pauseMs = 1500) {
+    if (!('speechSynthesis' in window)) return;
+    if (timesLeft <= 0) return;
+
+    if (timesLeft === 3) {
+      window.speechSynthesis.cancel();
+      if (window.__announceTimer) {
+        clearTimeout(window.__announceTimer);
+        window.__announceTimer = null;
+      }
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      `Token ${token.split('').join(' ')}. Please proceed to counter ${counter}.`
+    );
+    utterance.rate = 0.85;
+
+    window.__activeUtterances = window.__activeUtterances || [];
+    window.__activeUtterances.push(utterance);
+
+    utterance.onend = () => {
+      window.__activeUtterances = window.__activeUtterances.filter(u => u !== utterance);
+      if (timesLeft - 1 > 0) {
+        window.__announceTimer = setTimeout(
+          () => announceToken(token, counter, timesLeft - 1, pauseMs),
+          pauseMs
+        );
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
   function bumpElement(el) {
     if (!el) return;
     el.classList.add('value-bump');
@@ -549,6 +582,8 @@
       osc.start();
       setTimeout(() => osc.stop(), 300);
     } catch (e) {}
+
+    announceToken(data.token, data.counter, 3);
   });
 
   socket.on('queue_cancelled', (data) => {
