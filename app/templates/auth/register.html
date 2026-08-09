@@ -28,7 +28,7 @@
 
       <div class="mb-3">
         {{ form.phone.label(class="form-label") }}
-        {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), maxlength="10", inputmode="numeric") }}
+        {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), maxlength="10", inputmode="numeric", placeholder="98XXXXXXXX") }}
         {% for error in form.phone.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
       </div>
 

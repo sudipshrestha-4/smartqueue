@@ -1,8 +1,15 @@
 import re
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, Regexp, ValidationError
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from email_validator import validate_email, EmailNotValidError
+
+
+def validate_nepal_phone(form, field):
+    """Nepal mobile: exactly 10 digits starting with 97 or 98."""
+    phone = (field.data or '').strip()
+    if not re.fullmatch(r'(97|98)\d{8}', phone):
+        raise ValidationError('Phone number must be 10 digits and start with 97 or 98.')
 
 
 def validate_real_email(form, field):
@@ -45,7 +52,7 @@ class RegisterForm(FlaskForm):
 
     phone = StringField('Phone Number', validators=[
         DataRequired(),
-        Regexp(r'^\d{10}$', message='Phone number must be exactly 10 digits (numbers only).')
+        validate_nepal_phone,
     ])
 
     password = PasswordField('Password', validators=[
@@ -59,6 +66,13 @@ class RegisterForm(FlaskForm):
     )
 
     submit = SubmitField('Register')
+
+    def validate_phone(self, field):
+        from app.models.user import User
+        if User.query.filter_by(phone=field.data.strip()).first():
+            raise ValidationError('This phone number is already registered.')
+
+
 class StaffForm(FlaskForm):
     name = StringField('Full Name', validators=[DataRequired(), Length(min=2, max=100)])
 
@@ -70,7 +84,7 @@ class StaffForm(FlaskForm):
 
     phone = StringField('Phone Number', validators=[
         DataRequired(),
-        Regexp(r'^\d{10}$', message='Phone number must be exactly 10 digits (numbers only).')
+        validate_nepal_phone,
     ])
 
     password = PasswordField('Password', validators=[
@@ -84,6 +98,11 @@ class StaffForm(FlaskForm):
     )
 
     submit = SubmitField('Create Staff Account')
+
+    def validate_phone(self, field):
+        from app.models.user import User
+        if User.query.filter_by(phone=field.data.strip()).first():
+            raise ValidationError('This phone number is already registered.')
 
 
 class ForgotPasswordForm(FlaskForm):
@@ -119,6 +138,14 @@ class EditProfileForm(FlaskForm):
     ])
     phone = StringField('Phone Number', validators=[
         DataRequired(),
-        Regexp(r'^\d{10}$', message='Phone number must be exactly 10 digits (numbers only).')
+        validate_nepal_phone,
     ])
     submit = SubmitField('Save Changes')
+
+    def validate_phone(self, field):
+        from flask_login import current_user
+        from app.models.user import User
+        phone = field.data.strip()
+        existing = User.query.filter(User.phone == phone, User.id != current_user.id).first()
+        if existing:
+            raise ValidationError('This phone number is already registered.')

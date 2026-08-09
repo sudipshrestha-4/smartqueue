@@ -120,6 +120,11 @@ def register():
             flash('An account with this email already exists.', 'warning')
             return redirect(url_for('auth.register'))
 
+        existing_phone = User.query.filter_by(phone=form.phone.data.strip()).first()
+        if existing_phone:
+            flash('An account with this phone number already exists.', 'warning')
+            return redirect(url_for('auth.register'))
+
         new_user = User(
             name=form.name.data.strip(),
             email=form.email.data.lower().strip(),
@@ -214,9 +219,15 @@ def edit_profile():
             flash('That email is already in use by another account.', 'warning')
             return redirect(url_for('auth.edit_profile'))
 
+        phone = form.phone.data.strip()
+        existing_phone = User.query.filter(User.phone == phone, User.id != current_user.id).first()
+        if existing_phone:
+            flash('That phone number is already in use by another account.', 'warning')
+            return redirect(url_for('auth.edit_profile'))
+
         current_user.name = form.name.data.strip()
         current_user.email = email
-        current_user.phone = form.phone.data.strip()
+        current_user.phone = phone
 
         photo = request.files.get('profile_photo')
         if photo and photo.filename:

@@ -126,6 +126,11 @@ def add_staff():
             flash('An account with this email already exists.', 'warning')
             return redirect(url_for('admin.dashboard'))
 
+        existing_phone = User.query.filter_by(phone=form.phone.data.strip()).first()
+        if existing_phone:
+            flash('An account with this phone number already exists.', 'warning')
+            return redirect(url_for('admin.dashboard'))
+
         staff = User(
             name=form.name.data.strip(),
             email=form.email.data.lower().strip(),
