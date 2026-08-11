@@ -2,6 +2,7 @@ from app import create_app
 from app.extensions import db
 from app.models.service import Service
 from app.models.counter import Counter
+from app.models.bank_settings import BankSettings
 
 
 def seed_base_data(app):
@@ -17,6 +18,9 @@ def seed_base_data(app):
         if Counter.query.count() == 0:
             counters = [Counter(counter_number=i, status='active') for i in range(1, 5)]
             db.session.add_all(counters)
+
+        if BankSettings.query.count() == 0:
+            db.session.add(BankSettings())
 
         db.session.commit()
         print("Seed data inserted successfully.")

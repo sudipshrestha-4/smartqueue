@@ -6,3 +6,4 @@ from app.models.analytics import AnalyticsLog
 from app.models.feedback import Feedback
 from app.models.pending_service import PendingService
 from app.models.audit_log import TokenResetLog
+from app.models.bank_settings import BankSettings

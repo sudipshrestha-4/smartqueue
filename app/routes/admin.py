@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time as dt_time
 from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
@@ -9,6 +9,7 @@ import io
 from app.extensions import db
 from app.utils.decorators import role_required
 from app.utils.queue_logic import recalculate_all_service_durations, ACTIVE_STATUSES
+from app.utils.token_generator import get_bank_settings, get_bank_status_info
 from app.models.counter import Counter
 from app.models.user import User
 from app.models.service import Service
@@ -104,6 +105,8 @@ def dashboard():
         QueueEntry.status.in_(ACTIVE_STATUSES)
     ).count()
     reset_logs = TokenResetLog.query.order_by(TokenResetLog.reset_at.desc()).limit(10).all()
+    bank_settings = get_bank_settings()
+    bank_status = get_bank_status_info(bank_settings)
 
     return render_template(
         'admin/dashboard.html',
@@ -119,6 +122,8 @@ def dashboard():
         feedback_avg=feedback_avg,
         active_queue_count=active_queue_count,
         reset_logs=reset_logs,
+        bank_settings=bank_settings,
+        bank_status=bank_status,
     )
 
 
@@ -376,6 +381,69 @@ def analytics():
 def recalculate_durations():
     recalculate_all_service_durations()
     flash('Service durations recalculated from historical data.', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+
+def _parse_time_field(value, field_label):
+    if not value:
+        return None, f'{field_label} is required.'
+    try:
+        parts = value.split(':')
+        if len(parts) < 2:
+            raise ValueError
+        hour = int(parts[0])
+        minute = int(parts[1])
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            raise ValueError
+        return dt_time(hour, minute), None
+    except (TypeError, ValueError):
+        return None, f'{field_label} must be a valid time.'
+
+
+@admin_bp.route('/operating-hours', methods=['POST'])
+@login_required
+@role_required('admin')
+def update_operating_hours():
+    open_time, open_err = _parse_time_field(request.form.get('open_time'), 'Opening time')
+    close_time, close_err = _parse_time_field(request.form.get('close_time'), 'Closing time')
+
+    for err in (open_err, close_err):
+        if err:
+            flash(err, 'danger')
+            return redirect(url_for('admin.dashboard'))
+
+    if open_time == close_time:
+        flash('Opening and closing times cannot be the same.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    settings = get_bank_settings()
+    settings.open_time = open_time
+    settings.close_time = close_time
+    db.session.commit()
+    flash('Operating hours updated.', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/bank-status', methods=['POST'])
+@login_required
+@role_required('admin')
+def set_bank_status():
+    status = request.form.get('status', 'auto')
+    if status not in ('auto', 'open', 'closed'):
+        flash('Invalid bank status selection.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    settings = get_bank_settings()
+    settings.manual_override = None if status == 'auto' else status
+    db.session.commit()
+
+    if status == 'auto':
+        flash('Bank status set to automatic (follows operating hours).', 'info')
+    elif status == 'open':
+        flash('Bank manually opened. Customers can generate tokens regardless of schedule.', 'success')
+    else:
+        flash('Bank manually closed. Token generation is disabled until reopened.', 'warning')
+
     return redirect(url_for('admin.dashboard'))
 
 

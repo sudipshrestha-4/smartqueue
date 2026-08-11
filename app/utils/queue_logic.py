@@ -6,7 +6,7 @@ from app.models.counter import Counter
 from app.models.queue_entry import QueueEntry
 from app.models.service import Service
 from app.models.pending_service import PendingService
-from app.utils.token_generator import generate_token_number
+from app.utils.token_generator import generate_token_number, is_bank_open
 
 # Lower number = higher priority
 PRIORITY_RANK = {
@@ -230,6 +230,9 @@ def get_active_entry(customer_id):
 
 def create_queue_entry(customer_id, service_id, priority_type='normal'):
     """Creates a new waiting queue entry with a unique, per-service daily token."""
+    if not is_bank_open():
+        return None
+
     prefix = 'E' if priority_type == 'emergency' else ('P' if priority_type != 'normal' else 'N')
 
     try:

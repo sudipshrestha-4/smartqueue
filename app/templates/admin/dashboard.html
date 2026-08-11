@@ -268,6 +268,86 @@
     </div>
   </div>
 
+  <!-- Bank Operating Hours -->
+  <div class="col-12">
+    <div class="section-card">
+      <div class="section-card-header">
+        <div class="section-card-header-left">
+          <i class="bi bi-clock-history"></i>
+          <h5>Bank Operating Hours</h5>
+          {% if bank_status.is_open %}
+          <span class="badge-status active ms-2">Open</span>
+          {% else %}
+          <span class="badge-status inactive ms-2">Closed</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="section-card-body">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <h6 class="text-muted mb-3"><i class="bi bi-calendar-range me-1"></i>Schedule (NPT)</h6>
+            <form method="POST" action="{{ url_for('admin.update_operating_hours') }}" class="row g-3 align-items-end">
+              <div class="col-sm-5">
+                <label class="form-label">Opening Time</label>
+                <input type="time" name="open_time" class="form-control"
+                       value="{{ bank_settings.open_time.strftime('%H:%M') }}" required>
+              </div>
+              <div class="col-sm-5">
+                <label class="form-label">Closing Time</label>
+                <input type="time" name="close_time" class="form-control"
+                       value="{{ bank_settings.close_time.strftime('%H:%M') }}" required>
+              </div>
+              <div class="col-sm-2">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-check-lg"></i> Save
+                </button>
+              </div>
+            </form>
+            <p class="text-muted small mt-2 mb-0">
+              Current schedule: {{ bank_status.hours }}. Token generation follows this schedule automatically.
+            </p>
+          </div>
+          <div class="col-lg-6">
+            <h6 class="text-muted mb-3"><i class="bi bi-sliders me-1"></i>Manual Status Override</h6>
+            <p class="small text-muted mb-3">
+              Override the schedule for holidays, maintenance, or emergencies.
+              When manually closed, customers cannot generate tokens even during normal hours.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <form method="POST" action="{{ url_for('admin.set_bank_status') }}">
+                <input type="hidden" name="status" value="auto">
+                <button type="submit" class="btn btn-sm {% if not bank_settings.manual_override %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                  <i class="bi bi-arrow-repeat"></i> Automatic
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.set_bank_status') }}">
+                <input type="hidden" name="status" value="open">
+                <button type="submit" class="btn btn-sm {% if bank_settings.manual_override == 'open' %}btn-success{% else %}btn-outline-success{% endif %}">
+                  <i class="bi bi-door-open"></i> Force Open
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.set_bank_status') }}">
+                <input type="hidden" name="status" value="closed">
+                <button type="submit" class="btn btn-sm {% if bank_settings.manual_override == 'closed' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                  <i class="bi bi-door-closed"></i> Force Closed
+                </button>
+              </form>
+            </div>
+            <p class="small mt-3 mb-0">
+              {% if bank_settings.manual_override == 'open' %}
+              <span class="text-success"><i class="bi bi-info-circle me-1"></i>Manually forced open — schedule ignored.</span>
+              {% elif bank_settings.manual_override == 'closed' %}
+              <span class="text-danger"><i class="bi bi-info-circle me-1"></i>Manually closed — token generation disabled.</span>
+              {% else %}
+              <span class="text-muted"><i class="bi bi-info-circle me-1"></i>Following automatic schedule based on current NPT time.</span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Token Counters -->
   <div class="col-12">
     <div class="section-card">

@@ -19,6 +19,7 @@ from app.utils.queue_logic import (
     activate_next_pending_service,
 )
 from app.utils.qr_generator import generate_qr_code
+from app.utils.token_generator import get_bank_status_info, is_bank_open
 from app.models.service import Service
 from app.models.queue_entry import QueueEntry
 from app.models.pending_service import PendingService
@@ -95,6 +96,8 @@ def dashboard():
         customer_id=current_user.id,
     ).order_by(Feedback.created_at.desc()).limit(10).all()
 
+    bank_status = get_bank_status_info()
+
     return render_template(
         'customer/dashboard.html',
         active_page='dashboard',
@@ -106,6 +109,7 @@ def dashboard():
         queue_history=queue_history,
         feedback_pending=feedback_pending,
         submitted_feedbacks=submitted_feedbacks,
+        bank_status=bank_status,
     )
 
 
@@ -149,6 +153,11 @@ def token_details(entry_id):
 @login_required
 @role_required('customer')
 def join_queue():
+    if not is_bank_open():
+        bank_status = get_bank_status_info()
+        flash(bank_status['message'], 'warning')
+        return redirect(url_for('customer.dashboard'))
+
     service_ids = request.form.getlist('service_ids')
     priority_type = request.form.get('priority_type', 'normal')
 
@@ -217,7 +226,11 @@ def join_queue():
                 ))
 
     if not new_entry:
-        flash('Could not create token. Please try again.', 'danger')
+        if not is_bank_open():
+            bank_status = get_bank_status_info()
+            flash(bank_status['message'], 'warning')
+        else:
+            flash('Could not create token. Please try again.', 'danger')
         return redirect(url_for('customer.dashboard'))
 
     db.session.commit()
