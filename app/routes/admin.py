@@ -95,7 +95,10 @@ def dashboard():
     staff_form = StaffForm()
     staff_password_form = AdminStaffPasswordForm()
 
-    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(20).all()
+    feedback_total = Feedback.query.count()
+    feedback_avg = db.session.query(db.func.avg(Feedback.rating)).scalar()
+    feedback_avg = round(float(feedback_avg), 1) if feedback_avg is not None else None
+    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(10).all()
 
     active_queue_count = QueueEntry.query.filter(
         QueueEntry.status.in_(ACTIVE_STATUSES)
@@ -112,8 +115,32 @@ def dashboard():
         staff_form=staff_form,
         staff_password_form=staff_password_form,
         feedbacks=feedbacks,
+        feedback_total=feedback_total,
+        feedback_avg=feedback_avg,
         active_queue_count=active_queue_count,
         reset_logs=reset_logs,
+    )
+
+
+@admin_bp.route('/feedback')
+@login_required
+@role_required('admin')
+def feedback():
+    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).all()
+    total_count = len(feedbacks)
+    avg_rating = round(sum(f.rating for f in feedbacks) / total_count, 1) if total_count else None
+
+    rating_counts = {i: 0 for i in range(1, 6)}
+    for fb in feedbacks:
+        rating_counts[fb.rating] = rating_counts.get(fb.rating, 0) + 1
+
+    return render_template(
+        'admin/feedback.html',
+        active_page='feedback',
+        feedbacks=feedbacks,
+        total_count=total_count,
+        avg_rating=avg_rating,
+        rating_counts=rating_counts,
     )
 
 

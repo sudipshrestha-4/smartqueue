@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, socketio
 from app.utils.decorators import role_required
@@ -29,8 +30,20 @@ VALID_PRIORITIES = {'normal', 'elderly', 'disabled', 'pregnant', 'emergency'}
 
 
 @customer_bp.app_context_processor
-def inject_status_helpers():
-    return {'get_status_display': get_status_display}
+def inject_customer_context():
+    pending_feedback_count = 0
+    if current_user.is_authenticated and getattr(current_user, 'role', None) == 'customer':
+        pending_feedback_count = QueueEntry.query.filter_by(
+            customer_id=current_user.id,
+            status='completed',
+        ).outerjoin(Feedback, QueueEntry.id == Feedback.queue_entry_id).filter(
+            Feedback.id.is_(None)
+        ).count()
+
+    return {
+        'get_status_display': get_status_display,
+        'pending_feedback_count': pending_feedback_count,
+    }
 
 
 @customer_bp.route('/dashboard')
@@ -71,13 +84,16 @@ def dashboard():
 
     queue_history = get_queue_history(current_user.id)
 
-    # Completed entries awaiting feedback (no feedback yet)
     feedback_pending = QueueEntry.query.filter_by(
         customer_id=current_user.id,
-        status='completed'
-    ).outerjoin(Feedback).filter(
+        status='completed',
+    ).outerjoin(Feedback, QueueEntry.id == Feedback.queue_entry_id).filter(
         Feedback.id.is_(None)
-    ).order_by(QueueEntry.service_completion_time.desc()).limit(3).all()
+    ).order_by(QueueEntry.service_completion_time.desc()).all()
+
+    submitted_feedbacks = Feedback.query.filter_by(
+        customer_id=current_user.id,
+    ).order_by(Feedback.created_at.desc()).limit(10).all()
 
     return render_template(
         'customer/dashboard.html',
@@ -89,6 +105,7 @@ def dashboard():
         qr_codes=qr_codes,
         queue_history=queue_history,
         feedback_pending=feedback_pending,
+        submitted_feedbacks=submitted_feedbacks,
     )
 
 
@@ -269,7 +286,12 @@ def submit_feedback(entry_id):
         comment=comment or None,
     )
     db.session.add(feedback)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('You already submitted feedback for this visit.', 'info')
+        return redirect(url_for('customer.dashboard'))
 
     flash('Thank you for your feedback!', 'success')
     return redirect(url_for('customer.dashboard'))

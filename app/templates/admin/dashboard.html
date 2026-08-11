@@ -364,10 +364,22 @@
         <div class="section-card-header-left">
           <i class="bi bi-star"></i>
           <h5>Customer Feedback</h5>
-          <span class="badge-count">{{ feedbacks|length }}</span>
+          <span class="badge-count">{{ feedback_total }}</span>
         </div>
+        <a href="{{ url_for('admin.feedback') }}" class="btn btn-sm btn-outline-primary">
+          View All <i class="bi bi-arrow-right"></i>
+        </a>
       </div>
       <div class="section-card-body">
+        {% if feedback_total %}
+        <div class="feedback-summary-inline mb-3">
+          <span class="feedback-avg-badge">
+            <i class="bi bi-star-fill text-warning"></i>
+            {{ feedback_avg }} average
+          </span>
+          <span class="text-muted">from {{ feedback_total }} review{{ 's' if feedback_total != 1 else '' }}</span>
+        </div>
+        {% endif %}
         {% if feedbacks %}
         <div class="table-responsive">
           <table class="table admin-table">

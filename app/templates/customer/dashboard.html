@@ -14,6 +14,11 @@
   <a href="{{ url_for('main.display') }}" target="_blank" class="btn btn-sm btn-outline-secondary topbar-btn" title="Public Display">
     <i class="bi bi-display"></i><span class="d-none d-md-inline ms-1">Display</span>
   </a>
+  {% if feedback_pending %}
+  <a href="#feedback-section" class="btn btn-sm btn-warning topbar-btn" title="Give Feedback">
+    <i class="bi bi-star"></i><span class="d-none d-md-inline ms-1">Give Feedback</span>
+  </a>
+  {% endif %}
 </div>
 {% endblock %}
 
@@ -335,7 +340,83 @@
 </div>
 {% endif %}
 
-<!-- Feedback prompts -->
+<!-- Customer Feedback -->
+<div class="section-card history-card mt-2" id="feedback-section">
+  <div class="section-card-header">
+    <div class="section-card-header-left">
+      <i class="bi bi-star"></i>
+      <h5>Feedback</h5>
+      {% if feedback_pending %}
+      <span class="badge-count">{{ feedback_pending|length }} pending</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="section-card-body">
+    {% if feedback_pending %}
+    <p class="text-muted mb-3">How was your recent visit? Rate your completed services below.</p>
+    <div class="row g-3 mb-4">
+      {% for entry in feedback_pending %}
+      <div class="col-md-6 col-lg-4">
+        <div class="feedback-pending-card">
+          <div class="feedback-pending-icon"><i class="bi bi-chat-square-heart"></i></div>
+          <div>
+            <strong>{{ entry.service.name }}</strong>
+            <div class="text-muted small">Token {{ entry.token_number }}
+              {% if entry.service_completion_time %}
+              · {{ entry.service_completion_time.strftime('%b %d, %Y') }}
+              {% endif %}
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary ms-auto"
+                  data-bs-toggle="modal" data-bs-target="#feedbackModal-{{ entry.id }}">
+            <i class="bi bi-star"></i> Rate Now
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if submitted_feedbacks %}
+    <h6 class="feedback-subheading">Your submitted feedback</h6>
+    <div class="table-responsive">
+      <table class="table admin-table history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Service</th>
+            <th>Token</th>
+            <th>Rating</th>
+            <th>Comment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fb in submitted_feedbacks %}
+          <tr>
+            <td>{{ fb.created_at.strftime('%b %d, %Y') if fb.created_at else '—' }}</td>
+            <td>{{ fb.queue_entry.service.name if fb.queue_entry and fb.queue_entry.service else '—' }}</td>
+            <td>{{ fb.queue_entry.token_number if fb.queue_entry else '—' }}</td>
+            <td>
+              {% for i in range(fb.rating) %}<i class="bi bi-star-fill text-warning"></i>{% endfor %}
+              {% for i in range(5 - fb.rating) %}<i class="bi bi-star text-muted"></i>{% endfor %}
+            </td>
+            <td class="text-muted">{{ fb.comment or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% elif not feedback_pending %}
+    <div class="empty-state-card py-4">
+      <div class="empty-state-icon"><i class="bi bi-star"></i></div>
+      <h5>No feedback yet</h5>
+      <p class="mb-0">After a service is completed, you can rate your experience here.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Feedback modals -->
 {% for entry in feedback_pending %}
 <div class="modal fade customer-modal" id="feedbackModal-{{ entry.id }}" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -393,6 +474,7 @@
             <th>Wait Time</th>
             <th>Duration</th>
             <th>Status</th>
+            <th>Feedback</th>
           </tr>
         </thead>
         <tbody>
@@ -419,6 +501,18 @@
               {% else %}—{% endif %}
             </td>
             <td><span class="status-pill status-pill-sm status-pill-{{ h_color }}">{{ h_label }}</span></td>
+            <td>
+              {% if h.status == 'completed' and not h.feedback %}
+              <button type="button" class="btn btn-sm btn-outline-warning"
+                      data-bs-toggle="modal" data-bs-target="#feedbackModal-{{ h.id }}">
+                <i class="bi bi-star"></i> Rate
+              </button>
+              {% elif h.feedback %}
+              <span class="text-warning" title="{{ h.feedback.comment or '' }}">
+                {% for i in range(h.feedback.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
+              </span>
+              {% else %}—{% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>

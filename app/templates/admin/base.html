@@ -33,6 +33,10 @@
          class="sidebar-link {{ 'active' if active_page == 'analytics' else '' }}">
         <i class="bi bi-bar-chart-line"></i> Analytics
       </a>
+      <a href="{{ url_for('admin.feedback') }}"
+         class="sidebar-link {{ 'active' if active_page == 'feedback' else '' }}">
+        <i class="bi bi-star"></i> Feedback
+      </a>
       <a href="{{ url_for('auth.profile') }}"
          class="sidebar-link {{ 'active' if active_page == 'profile' else '' }}">
         <i class="bi bi-person"></i> My Profile

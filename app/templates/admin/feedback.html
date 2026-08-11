@@ -1,0 +1,106 @@
+{% extends "admin/base.html" %}
+{% block title %}Customer Feedback - QueueFlow{% endblock %}
+{% block page_title %}Customer Feedback{% endblock %}
+{% block page_subtitle %}All ratings and comments from completed visits{% endblock %}
+
+{% block admin_content %}
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-4 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon warning"><i class="bi bi-star-fill"></i></div>
+      <div>
+        <div class="stat-value">{{ avg_rating if avg_rating is not none else '—' }}</div>
+        <div class="stat-label">Average Rating</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon primary"><i class="bi bi-chat-square-text"></i></div>
+      <div>
+        <div class="stat-value">{{ total_count }}</div>
+        <div class="stat-label">Total Reviews</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-12">
+    <div class="stat-card">
+      <div class="stat-icon success"><i class="bi bi-bar-chart"></i></div>
+      <div class="w-100">
+        <div class="stat-label mb-2">Rating Distribution</div>
+        {% for star in range(5, 0, -1) %}
+        {% set count = rating_counts[star] %}
+        {% set pct = (count / total_count * 100)|round(0)|int if total_count else 0 %}
+        <div class="rating-bar-row">
+          <span class="rating-bar-label">{{ star }} <i class="bi bi-star-fill text-warning"></i></span>
+          <div class="rating-bar-track">
+            <div class="rating-bar-fill" style="width: {{ pct }}%"></div>
+          </div>
+          <span class="rating-bar-count">{{ count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All Feedback -->
+<div class="section-card">
+  <div class="section-card-header">
+    <div class="section-card-header-left">
+      <i class="bi bi-list-stars"></i>
+      <h5>All Feedback</h5>
+      <span class="badge-count">{{ total_count }}</span>
+    </div>
+  </div>
+  <div class="section-card-body">
+    {% if feedbacks %}
+    <div class="table-responsive">
+      <table class="table admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>Token</th>
+            <th>Rating</th>
+            <th>Comment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fb in feedbacks %}
+          <tr>
+            <td>
+              <span>{{ fb.created_at.strftime('%b %d, %Y') if fb.created_at else '—' }}</span>
+              {% if fb.created_at %}
+              <span class="d-block text-muted small">{{ fb.created_at.strftime('%I:%M %p') }}</span>
+              {% endif %}
+            </td>
+            <td>{{ fb.customer.name if fb.customer else '—' }}</td>
+            <td>{{ fb.queue_entry.service.name if fb.queue_entry and fb.queue_entry.service else '—' }}</td>
+            <td><span class="history-token">{{ fb.queue_entry.token_number if fb.queue_entry else '—' }}</span></td>
+            <td>
+              <span class="feedback-stars">
+                {% for i in range(fb.rating) %}<i class="bi bi-star-fill text-warning"></i>{% endfor %}
+                {% for i in range(5 - fb.rating) %}<i class="bi bi-star text-muted"></i>{% endfor %}
+              </span>
+              <span class="text-muted small ms-1">({{ fb.rating }}/5)</span>
+            </td>
+            <td class="text-muted">{{ fb.comment or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-star"></i>
+      <p>No customer feedback yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -851,6 +851,102 @@ body.customer-page .section-card-header-left i { color: #6366f1; }
   color: #ffc107;
 }
 
+/* ── Feedback ─────────────────────────────────────────────── */
+
+.sidebar-badge {
+  margin-left: auto;
+  background: #ffc107;
+  color: #1a2b4a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
+.feedback-pending-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+}
+
+.feedback-pending-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.feedback-subheading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.feedback-summary-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feedback-avg-badge {
+  font-weight: 600;
+  color: #1a2b4a;
+}
+
+.rating-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.rating-bar-label {
+  width: 36px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.rating-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rating-bar-fill {
+  height: 100%;
+  background: #ffc107;
+  border-radius: 4px;
+  min-width: 0;
+  transition: width 0.3s ease;
+}
+
+.rating-bar-count {
+  width: 24px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.feedback-stars {
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Profile Pages — Shared across Admin / Staff / Customer
    ═══════════════════════════════════════════════════════════ */

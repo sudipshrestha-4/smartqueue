@@ -27,6 +27,13 @@
          class="sidebar-link {{ 'active' if active_page == 'dashboard' else '' }}">
         <i class="bi bi-speedometer2"></i> My Dashboard
       </a>
+      <a href="{{ url_for('customer.dashboard') }}#feedback-section"
+         class="sidebar-link">
+        <i class="bi bi-star"></i> Feedback
+        {% if pending_feedback_count %}
+        <span class="sidebar-badge">{{ pending_feedback_count }}</span>
+        {% endif %}
+      </a>
       <a href="{{ url_for('auth.profile') }}"
          class="sidebar-link {{ 'active' if active_page == 'profile' else '' }}">
         <i class="bi bi-person"></i> My Profile
