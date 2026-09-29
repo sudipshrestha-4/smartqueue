@@ -1,7 +1,6 @@
 # SmartQueue
 
-A Smart Token-Based Queue Management System with deterministic wait-time
-estimation 
+Smart token-based queue management system with real-time queue monitoring and priority handling.
 
 Built for the Minor Project (BE Computer Engineering, Pokhara University)
 by Sudip Shrestha, Saru Chauwal, and Pratik Karki — Nepal College of
